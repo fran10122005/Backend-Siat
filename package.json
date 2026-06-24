@@ -1,0 +1,37 @@
+{
+  "name": "backend-siat",
+  "version": "1.0.0",
+  "description": "Backend for SIAT",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "jest --forceExit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@prisma/client": "5.22.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "handlebars": "^4.7.9",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "nanoid": "^3.3.15",
+    "nodemailer": "^8.0.10",
+    "socket.io": "^4.8.3",
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "jest-mock-extended": "^4.0.1",
+    "nodemon": "^3.1.14",
+    "prisma": "5.22.0",
+    "supertest": "^7.2.2"
+  }
+}
