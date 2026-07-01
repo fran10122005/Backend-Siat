@@ -1,0 +1,9 @@
+- [x] Instalar dependencia `express-rate-limit` en el backend
+- [x] Crear el middleware `src/middleware/rateLimiter.js`
+- [x] Registrar Rate Limiting en `src/app.js`
+- [x] Actualizar `index.js` para asegurar Socket.io con JWT y manejar salas de Socket.io por niño
+- [x] Modificar `src/modules/monitoreo/monitoreo.service.js` para emitir alertas segmentadas por sala
+- [x] Enriquecer `src/middleware/errorHandler.js` con mapeo de errores de Prisma (Ya era robusto)
+- [x] Actualizar el frontend `NotificationBell.jsx` para autenticar WebSockets
+- [x] Actualizar el frontend `HardwareInventory.jsx` para autenticar WebSockets
+- [x] Validar que todo levante y funcione correctamente

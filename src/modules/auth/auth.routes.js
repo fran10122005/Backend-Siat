@@ -6,8 +6,10 @@ const { validateSchema } = require('../../middleware/validate.middleware');
 const { authenticate } = require('../../middleware/auth.middleware');
 const schemas = require('./auth.schema');
 
+const { authLimiter } = require('../../middleware/rateLimiter');
+
 // POST /api/auth/login
-router.post('/login', validateSchema(schemas.loginSchema), authController.login);
+router.post('/login', authLimiter, validateSchema(schemas.loginSchema), authController.login);
 
 // POST /api/auth/register-repre
 router.post('/register/repre', validateSchema(schemas.registerRepreSchema), authController.registerRepre);

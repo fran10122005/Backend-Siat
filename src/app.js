@@ -3,11 +3,16 @@ const cors = require('cors');
 const morgan = require('morgan');
 
 const app = express();
+const env = require('./config/env');
 
-// Configurar CORS para permitir localhost en cualquier puerto durante desarrollo
+// Configurar CORS: permite localhost en desarrollo y la URL del frontend en producción
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    const allowedOrigins = [
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/,
+      env.FRONTEND_URL.replace(/\/$/, '')
+    ];
+    if (!origin || allowedOrigins.some(o => typeof o === 'string' ? o === origin : o.test(origin))) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -16,10 +21,13 @@ app.use(cors({
   credentials: true
 }));
 
+const { globalLimiter } = require('./middleware/rateLimiter');
+
 // Middlewares globales
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/api', globalLimiter);
 
 // Rutas base
 app.get('/api/health', (req, res) => {

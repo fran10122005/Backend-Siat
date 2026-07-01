@@ -142,7 +142,7 @@ class MonitoreoService {
 
     // Emitir telemetría continua para graficar en vivo
     if (io) {
-      io.emit('new_telemetry', {
+      io.to(`child:${sesion.tm_ninos.nin_codi}`).emit('new_telemetry', {
         ses_codi: data.ses_codi,
         con_codi: data.con_codi,
         bpm: bpm,
@@ -166,7 +166,7 @@ class MonitoreoService {
 
       // Emitir Socket.io
       if (io) {
-        io.emit('new_alert', {
+        io.to(`child:${sesion.tm_ninos.nin_codi}`).emit('new_alert', {
           id_alert: alerta.ale_codi,
           fec_hora: alerta.ale_time,
           metodo: alerta.ale_meto,

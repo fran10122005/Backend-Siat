@@ -1,6 +1,7 @@
 const prisma = require('../../config/db');
 const authService = require('../auth/auth.service');
 const emailService = require('../../services/email.service');
+const env = require('../../config/env');
 const AppError = require('../../utils/AppError');
 const { generateId } = require('../../utils/idGenerator');
 
@@ -80,7 +81,7 @@ class AdminService {
     const result = await authService.registerEspecialista(payload);
     
     try {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrl = env.FRONTEND_URL || 'http://localhost:5173';
       await emailService.sendEmail({
         to: data.email,
         subject: 'Bienvenido a SIAT - Credenciales de Acceso',
