@@ -5,12 +5,13 @@ const morgan = require('morgan');
 const app = express();
 const env = require('./config/env');
 
-// Configurar CORS: permite localhost en desarrollo y la URL del frontend en producción
+// Configurar CORS: permite localhost en desarrollo y la(s) URL(s) del frontend en producción
 app.use(cors({
   origin: function (origin, callback) {
+    const frontendUrls = env.FRONTEND_URL.split(',').map(u => u.trim().replace(/\/$/, ''));
     const allowedOrigins = [
       /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/,
-      env.FRONTEND_URL.replace(/\/$/, '')
+      ...frontendUrls
     ];
     if (!origin || allowedOrigins.some(o => typeof o === 'string' ? o === origin : o.test(origin))) {
       callback(null, true);
