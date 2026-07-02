@@ -71,7 +71,7 @@ async function main() {
           bit_anim: animo,
           bit_apet: apetito,
           bit_bpm: bpm,
-          bit_obse: 'Generado por inyector de historial',
+          bit_obse: 'Registro del día generado automáticamente.',
           bit_crea: new Date()
         }
       });
@@ -94,7 +94,7 @@ async function main() {
           dis_codi: dispo.dis_codi,
           ses_inic: sesDate,
           ses_cerr: sesClose,
-          ses_nota: '[Cooperación: 4/5] Sesión completada con éxito. Datos históricos inyectados.'
+          ses_nota: '[Cooperación: 4/5] Sesión completada con éxito.'
         }
       });
 
