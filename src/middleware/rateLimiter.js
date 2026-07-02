@@ -1,20 +1,20 @@
 const rateLimit = require('express-rate-limit');
 
-// Limitador global de peticiones a la API: Máximo 2000 peticiones cada 15 minutos en desarrollo, o 100 en producción
+// Limitador global de peticiones a la API
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: process.env.NODE_ENV === 'production' ? 100 : 5000, // Aumentado en desarrollo
+  windowMs: 60 * 1000, // 1 minuto
+  max: process.env.NODE_ENV === 'production' ? 500 : 5000,
   message: {
-    error: 'Demasiadas solicitudes desde esta dirección IP. Por favor, intente de nuevo en 15 minutos.'
+    error: 'Demasiadas solicitudes desde esta dirección IP. Por favor, espere un momento e intente de nuevo.'
   },
-  standardHeaders: true, // Retorna la info del rate limit en los headers 'RateLimit-*'
-  legacyHeaders: false, // Deshabilita los headers 'X-RateLimit-*'
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Limitador específico para endpoints sensibles (como login)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: process.env.NODE_ENV === 'production' ? 15 : 200, // Aumentado en desarrollo
+  max: process.env.NODE_ENV === 'production' ? 50 : 500,
   message: {
     error: 'Demasiados intentos de inicio de sesión. Por favor, intente de nuevo en 15 minutos.'
   },
