@@ -33,7 +33,7 @@ class NinosService {
         ins_codi: instCodi,
         nin_nomb: data.nin_nomb,
         nin_apel: data.nin_apel,
-        nin_fnac: data.nin_fnac,
+        nin_fnac: new Date(data.nin_fnac),
         nin_gner: data.nin_gner,
         nin_nivd: data.nin_nivd,
         nin_ingr: new Date()
@@ -324,6 +324,22 @@ class NinosService {
       throw new Error('Representante no encontrado');
     }
 
+    // Funciones helper seguras para validación
+    const parseNumber = (val) => {
+      if (val === null || val === undefined || val === '') return null;
+      const parsed = Number(val);
+      return isNaN(parsed) ? null : parsed;
+    };
+
+    const parseBoolean = (val) => {
+      if (val === 'true' || val === true) return true;
+      if (val === 'false' || val === false) return false;
+      return null;
+    };
+
+    let dateVal = new Date(data.date);
+    if (isNaN(dateVal.getTime())) dateVal = new Date();
+
     // Generar ID único
     const bit_codi = 'B' + crypto.randomBytes(3).toString('hex') + Math.floor(Math.random() * 10);
 
@@ -331,17 +347,17 @@ class NinosService {
       data: {
         bit_codi: bit_codi.substring(0, 10),
         nin_codi: repre.nin_codi,
-        bit_fech: new Date(data.date),
-        bit_suen: parseFloat(data.sleepHours),
-        bit_cali: data.sleepQuality,
-        bit_anim: data.mood,
-        bit_apet: data.appetite,
-        bit_bpm: data.bpm ? parseInt(data.bpm) : null,
-        bit_obse: data.text,
-        bit_crisi: data.crisisCount !== undefined ? parseInt(data.crisisCount) : null,
+        bit_fech: dateVal,
+        bit_suen: parseNumber(data.sleepHours) || 0,
+        bit_cali: data.sleepQuality || 'Normal',
+        bit_anim: data.mood || 'Normal',
+        bit_apet: data.appetite || 'Normal',
+        bit_bpm: parseNumber(data.bpm),
+        bit_obse: data.text || null,
+        bit_crisi: parseNumber(data.crisisCount),
         bit_dese: data.triggers || null,
         bit_senso: data.sensoryIssues || null,
-        bit_medi: data.medicationTaken !== undefined ? data.medicationTaken : null,
+        bit_medi: parseBoolean(data.medicationTaken),
         bit_diges: data.digestion || null,
         bit_crea: new Date()
       }

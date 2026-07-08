@@ -83,7 +83,7 @@ const toggleInstitucionSchema = z.object({
 // --- Especialidades ---
 const createEspecialidadSchema = z.object({
   body: z.object({
-    esc_codi: z.string().min(1).max(10),
+    esc_codi: z.string().min(1).max(20),
     esc_nomb: z.string().min(2).max(50),
     esc_desc: z.string().optional()
   })

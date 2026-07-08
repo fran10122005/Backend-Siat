@@ -5,7 +5,7 @@ const registerNinoSchema = z.object({
     nin_codi: z.string().max(10),
     nin_nomb: z.string().max(50),
     nin_apel: z.string().max(50),
-    nin_fnac: z.string().transform(str => new Date(str)), // 'YYYY-MM-DD'
+    nin_fnac: z.string(), // 'YYYY-MM-DD'
     nin_gner: z.enum(['M', 'F']),
     nin_nivd: z.string().max(20),
   })
@@ -27,7 +27,7 @@ const inviteRepresentativeSchema = z.object({
   body: z.object({
     nin_nomb: z.string().max(50),
     nin_apel: z.string().max(50),
-    nin_fnac: z.string().transform(str => new Date(str)),
+    nin_fnac: z.string(),
     nin_gner: z.enum(['M', 'F']),
     nin_nivd: z.string().max(20),
     rep_nomb: z.string().max(50),
