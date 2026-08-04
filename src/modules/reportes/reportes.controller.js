@@ -171,10 +171,16 @@ const getHistorialCompleto = catchAsync(async (req, res) => {
     orderBy: { ses_inic: 'desc' }
   });
 
+  const bitacoras = await prisma.tr_bitac.findMany({
+    where: { nin_codi },
+    orderBy: { bit_fech: 'desc' }
+  });
+
   res.status(200).json({
     data: {
       reportes,
-      sesiones
+      sesiones,
+      bitacoras
     }
   });
 });

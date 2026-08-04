@@ -37,3 +37,7 @@ Desktop.ini
 .idea/
 *.sublime-project
 *.sublime-workspace
+# Cobertura de tests y scripts locales
+coverage/
+scratch/
+check_users.js

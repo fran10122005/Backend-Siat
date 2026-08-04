@@ -1,8 +1,6 @@
 const prisma = require('../../config/db');
 const emailService = require('../../services/email.service');
-const crypto = require('crypto');
-
-const generateId = (prefix) => (prefix + crypto.randomBytes(3).toString('hex') + Math.floor(Math.random() * 10)).substring(0, 10);
+const { generateId } = require('../../utils/idGenerator');
 
 class MonitoreoService {
   constructor() {
@@ -129,6 +127,18 @@ class MonitoreoService {
       ale_meto = 'SOBRECARGA_SENSORIAL';
     }
 
+    // Detección automática de sobrepaso de umbral configurado (tc_umbra) para este sensor
+    if (!is_alert && config.sen_codi) {
+      const umbral = await prisma.tc_umbra.findFirst({
+        where: { nin_codi: sesion.tm_ninos.nin_codi, sen_codi: config.sen_codi },
+        orderBy: { umb_ajus: 'desc' }
+      });
+      if (umbral && (bpm > umbral.umb_lims || bpm < umbral.umb_limi)) {
+        is_alert = true;
+        ale_meto = 'UMBRAL_SUPERADO';
+      }
+    }
+
     const telemetria = await prisma.tr_telem.create({
       data: {
         tel_codi: generateId('T'),
@@ -142,13 +152,14 @@ class MonitoreoService {
 
     // Emitir telemetría continua para graficar en vivo
     if (io) {
+      const time = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date());
       io.to(`child:${sesion.tm_ninos.nin_codi}`).emit('new_telemetry', {
         ses_codi: data.ses_codi,
         con_codi: data.con_codi,
         bpm: bpm,
         mov: mov,
         stress: stress,
-        time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).substring(3)
+        time: time
       });
     }
 
@@ -179,12 +190,29 @@ class MonitoreoService {
         });
       }
 
-      // Enviar correo si hay representante (Deshabilitado en periodo de pruebas para evitar envíos SMTP reales)
-      const representante = sesion.tm_ninos.tm_repre[0];
-      if (representante && representante.usu_codi) {
-        const userRep = await prisma.tm_usuar.findUnique({ where: { usu_codi: representante.usu_codi } });
-        if (userRep && userRep.usu_crro) {
-          console.log(`📧 [Simulación de Correo] Omitiendo envío real en pruebas. Destinatario: ${userRep.usu_crro} | Asunto: Alerta SIAT - ${sesion.tm_ninos.nin_nomb}`);
+      // Enviar correo real al representante con los datos SMTP configurados.
+      // Si SMTP no está configurado, se omite con aviso en vez de fallar la telemetría.
+      if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+        try {
+          const representante = sesion.tm_ninos.tm_repre[0];
+          if (representante && representante.usu_codi) {
+            const userRep = await prisma.tm_usuar.findUnique({ where: { usu_codi: representante.usu_codi } });
+            if (userRep && userRep.usu_crro) {
+              await emailService.sendEmail({
+                to: userRep.usu_crro,
+                subject: `Alerta SIAT - ${sesion.tm_ninos.nin_nomb}`,
+                templateName: 'alert-notification',
+                context: {
+                  nombre_padre: `${representante.rep_nomb} ${representante.rep_apel}`,
+                  nombre_nino: sesion.tm_ninos.nin_nomb,
+                  tipo_alerta: alerta.ale_meto,
+                  fecha_hora: new Date().toLocaleString('es-ES')
+                }
+              });
+            }
+          }
+        } catch (emailErr) {
+          console.error('Error al enviar correo de alerta:', emailErr.message);
         }
       }
     }

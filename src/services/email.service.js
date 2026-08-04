@@ -11,8 +11,8 @@ async function getTransporter() {
   const isGmail = process.env.SMTP_HOST && process.env.SMTP_HOST.includes('gmail');
   const transportConfig = {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: process.env.SMTP_PORT || 465,
-    secure: process.env.SMTP_PORT == 465 || true, 
+    port: Number(process.env.SMTP_PORT) || 465,
+    secure: String(process.env.SMTP_PORT) === '465',
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -52,6 +52,11 @@ class EmailService {
 
   async sendEmail({ to, subject, templateName, context, html }) {
     try {
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.warn(`📧 [SMTP no configurado] Correo omitido. Para: ${to} | Asunto: ${subject}`);
+        return { skipped: true, to, subject };
+      }
+
       const mailTransporter = await getTransporter();
       
       let finalHtml = html;

@@ -3,17 +3,12 @@ const cors = require('cors');
 const morgan = require('morgan');
 
 const app = express();
-const env = require('./config/env');
+const { isOriginAllowed } = require('./middleware/cors');
 
-// Configurar CORS: permite localhost en desarrollo y la(s) URL(s) del frontend en producción
+// Configurar CORS: origen definido en el helper compartido (middleware/cors.js)
 app.use(cors({
   origin: function (origin, callback) {
-    const frontendUrls = env.FRONTEND_URL.split(',').map(u => u.trim().replace(/\/$/, ''));
-    const allowedOrigins = [
-      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/,
-      ...frontendUrls
-    ];
-    if (!origin || allowedOrigins.some(o => typeof o === 'string' ? o === origin : o.test(origin))) {
+    if (isOriginAllowed(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -36,6 +31,7 @@ app.get('/api/health', (req, res) => {
 });
 
 const authRoutes = require('./modules/auth/auth.routes');
+const passkeyRoutes = require('./modules/passkey/passkey.routes');
 const ninosRoutes = require('./modules/ninos/ninos.routes');
 const sesionesRoutes = require('./modules/sesiones/sesiones.routes');
 const monitoreoRoutes = require('./modules/monitoreo/monitoreo.routes');
@@ -47,6 +43,7 @@ const errorHandler = require('./middleware/errorHandler');
 
 // Rutas de modulos
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', passkeyRoutes);
 app.use('/api/ninos', ninosRoutes);
 app.use('/api/sesiones', sesionesRoutes);
 app.use('/api/monitoreo', monitoreoRoutes);

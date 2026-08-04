@@ -12,7 +12,11 @@ const envSchema = z.object({
   SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z.string().default('465'),
   SMTP_USER: z.string().default(''),
-  SMTP_PASS: z.string().default('')
+  SMTP_PASS: z.string().default(''),
+  // WebAuthn (acceso rápido por huella). RP_ID y ORIGEN se derivan del frontend si no se definen.
+  WEBAUTHN_RP_ID: z.string().default('localhost'),
+  WEBAUTHN_RP_NAME: z.string().default('SIAT'),
+  WEBAUTHN_ORIGIN: z.string().default('http://localhost:5173')
 });
 
 const _env = envSchema.safeParse(process.env);

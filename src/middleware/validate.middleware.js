@@ -2,11 +2,13 @@ const { ZodError } = require('zod');
 
 const validateSchema = (schema) => (req, res, next) => {
   try {
-    schema.parse({
+    const result = schema.parse({
       body: req.body,
       query: req.query,
       params: req.params,
     });
+    // Exponer el cuerpo validado/saneado (Zod elimina claves desconocidas)
+    req.validatedBody = result.body;
     next();
   } catch (error) {
     if (error && (error.errors || error.issues)) {

@@ -43,6 +43,7 @@ model tm_usuar {
   tm_repre  tm_repre?
   tm_admin  tm_admin?
   tr_audito tr_audito[]
+  tm_passkeys tm_passkeys[]
 }
 
 model tm_insti {
@@ -398,4 +399,17 @@ model tr_audito {
   aud_time  DateTime @default(now()) @db.Timestamp()
 
   tm_usuar  tm_usuar @relation(fields: [usu_codi], references: [usu_codi])
+}
+
+model tm_passkeys {
+  pk_id        String    @id @db.VarChar(200)
+  usu_codi     String    @db.VarChar(10)
+  pk_nomb      String    @db.VarChar(60)
+  pk_public_key String   @db.Text
+  pk_transports String?  @db.Text
+  pk_counter   Int       @default(0)
+  pk_created   DateTime  @default(now()) @db.Timestamp()
+  pk_last_used DateTime? @db.Timestamp()
+
+  tm_usuar tm_usuar @relation(fields: [usu_codi], references: [usu_codi])
 }

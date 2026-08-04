@@ -1,21 +1,23 @@
 const { Prisma } = require('@prisma/client');
 
+const isProduction = () => process.env.NODE_ENV === 'production';
+
 const errorHandler = (err, req, res, next) => {
   console.error('Error no manejado:', err);
 
-  // Manejo de errores específicos de Prisma
+  // Errores específicos de Prisma
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    // Error de restricción única (ej. correo duplicado)
-    if (err.code === 'P2002') {
-      const field = err.meta && err.meta.target ? err.meta.target : 'campo';
-      return res.status(400).json({
-        error: `Restricción de duplicidad violada en el campo: ${field}. Ya existe un registro con ese valor.`
-      });
-    }
-    // Error de registro no encontrado
-    if (err.code === 'P2025') {
-      return res.status(404).json({ error: 'Registro no encontrado en la base de datos.' });
-    }
+    const target = err.meta && err.meta.target ? String(err.meta.target) : 'campo';
+    const map = {
+      P2000: { status: 400, error: `Valor demasiado largo para el campo: ${target}.` },
+      P2001: { status: 404, error: 'El registro consultado no existe.' },
+      P2002: { status: 400, error: `Restricción de duplicidad violada en el campo: ${target}. Ya existe un registro con ese valor.` },
+      P2003: { status: 400, error: `Violación de llave foránea en el campo: ${target}. El registro referenciado no existe.` },
+      P2010: { status: 500, error: 'Error de base de datos al ejecutar la consulta.' },
+      P2025: { status: 404, error: 'Registro no encontrado en la base de datos.' }
+    };
+    const mapped = map[err.code];
+    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
   }
 
   // Error de validación de Prisma
@@ -23,14 +25,13 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({ error: 'Error de validación en la consulta a la base de datos. Verifica los datos enviados.' });
   }
 
-  // Otros errores custom que pasemos con un "status" o "statusCode" (ej. en los controladores)
+  // Errores custom con status (ej. AppError en los controladores)
   const status = err.status || err.statusCode || 500;
-  const message = err.message || 'Error interno del servidor';
+  const message = isProduction() && status >= 500
+    ? 'Error interno del servidor'
+    : (err.message || 'Error interno del servidor');
 
-  res.status(status).json({
-    error: message,
-    // stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-  });
+  res.status(status).json({ error: message });
 };
 
 module.exports = errorHandler;

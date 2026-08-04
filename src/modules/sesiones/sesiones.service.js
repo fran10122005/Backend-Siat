@@ -1,9 +1,5 @@
 const prisma = require('../../config/db');
-const crypto = require('crypto');
-
-const generateId = (prefix) => {
-  return prefix + crypto.randomBytes(4).toString('hex') + Math.floor(Math.random() * 10);
-};
+const { generateId } = require('../../utils/idGenerator');
 
 class SesionesService {
   async iniciarSesion(data) {
@@ -81,8 +77,7 @@ class SesionesService {
   }
 
   async crearActividad(data) {
-    const crypto = require('crypto');
-    const act_codi = 'ACT_' + crypto.randomBytes(3).toString('hex').toUpperCase() + Math.floor(Math.random() * 10);
+    const act_codi = generateId('ACT_');
     const catCodi = data.category_code || 'CAT_SIM';
 
     return await prisma.tm_activ.create({

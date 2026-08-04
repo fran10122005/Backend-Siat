@@ -3,11 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const prisma = require('../../config/db');
 const env = require('../../config/env');
-
-const generateId = (prefix) => {
-  // 1 char prefix + 9 random hex chars = 10 chars max
-  return prefix + crypto.randomBytes(4).toString('hex') + Math.floor(Math.random() * 10);
-};
+const { generateId } = require('../../utils/idGenerator');
 
 class AuthService {
   async login(correo, clave) {

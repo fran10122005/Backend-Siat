@@ -3,7 +3,9 @@ const catchAsync = require('../../utils/catchAsync');
 
 const recibirTelemetria = catchAsync(async (req, res) => {
   const io = req.app.get('io');
-  const result = await monitoreoService.procesarTelemetria(req.body, io);
+  // Usar el cuerpo ya validado/saneado por el middleware (evita claves inesperadas)
+  const body = req.validatedBody || req.body;
+  const result = await monitoreoService.procesarTelemetria(body, io);
   
   if (result.alerta) {
     return res.status(201).json({ message: 'Alerta registrada y notificada', data: result });

@@ -3,10 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const env = require('../../config/env');
-
-const generateId = (prefix) => {
-  return (prefix + crypto.randomBytes(3).toString('hex') + Math.floor(Math.random() * 10)).substring(0, 10);
-};
+const { generateId } = require('../../utils/idGenerator');
 
 class NinosService {
   async crearNinoParaRepresentante(usu_codi, data) {
@@ -341,7 +338,7 @@ class NinosService {
     if (isNaN(dateVal.getTime())) dateVal = new Date();
 
     // Generar ID único
-    const bit_codi = 'B' + crypto.randomBytes(3).toString('hex') + Math.floor(Math.random() * 10);
+    const bit_codi = generateId('B');
 
     return await prisma.tr_bitac.create({
       data: {
@@ -429,7 +426,7 @@ class NinosService {
     if (data.sen_tipo) {
       let senCodi = nino.sen_codi;
       if (!senCodi) {
-        senCodi = 'S' + crypto.randomBytes(3).toString('hex') + Math.floor(Math.random() * 10);
+        senCodi = generateId('S');
         senCodi = senCodi.substring(0, 10);
         
         // Crear tc_sensi
