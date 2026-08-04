@@ -7,7 +7,9 @@ const credentialSchema = z.object({
   response: z.record(z.any()).optional()
 });
 
-const startLoginSchema = z.object({ body: z.object({}).passthrough() });
+const startLoginSchema = z.object({
+  body: z.record(z.any()).optional().default({})
+});
 
 const completeRegistrationSchema = z.object({
   body: z.object({
