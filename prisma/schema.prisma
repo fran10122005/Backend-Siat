@@ -113,6 +113,7 @@ model tm_ninos {
   tm_activ tm_activ[]
   tr_citas tr_citas[]
   tr_metaspei tr_metaspei[]
+  tm_conse tm_conse[]
 }
 
 model tm_repre {
@@ -126,6 +127,7 @@ model tm_repre {
 
   tm_usuar tm_usuar @relation(fields: [usu_codi], references: [usu_codi])
   tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
+  tm_conse tm_conse[]
 }
 
 model tc_sensi {
@@ -412,4 +414,18 @@ model tm_passkeys {
   pk_last_used DateTime? @db.Timestamp()
 
   tm_usuar tm_usuar @relation(fields: [usu_codi], references: [usu_codi])
+}
+
+model tm_conse {
+  con_codi String   @id @db.VarChar(10)
+  nin_codi String   @db.VarChar(10)
+  rep_cod  String   @db.VarChar(10)
+  con_vers String   @db.VarChar(10)
+  con_fech DateTime @default(now()) @db.Timestamp()
+  con_ip   String?  @db.VarChar(45)
+  con_acep Boolean  @default(false)
+  con_text String   @db.Text
+
+  tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
+  tm_repre tm_repre @relation(fields: [rep_cod], references: [rep_cod])
 }
