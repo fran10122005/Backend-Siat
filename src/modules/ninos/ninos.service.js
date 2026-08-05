@@ -176,8 +176,8 @@ class NinosService {
           rep_nomb: data.rep_nomb,
           rep_apel: data.rep_apel,
           nin_codi: nino.nin_codi,
-          rep_rela: 'Familiar',
-          rep_telf: 'No especificado'
+          rep_rela: data.rep_rela,
+          rep_telf: data.rep_telf
         }
       });
 
@@ -191,6 +191,26 @@ class NinosService {
             asi_inic: new Date(),
             asi_stdo: 'Activo'
           }
+        });
+      }
+
+      // 6. Create tc_sensi if data provided
+      if (data.sen_tipo && data.sen_nvli) {
+        const sen_codi = generateId('SN');
+        await tx.tc_sensi.create({
+          data: {
+            sen_codi: sen_codi,
+            nin_codi: nino.nin_codi,
+            sen_tipo: data.sen_tipo,
+            sen_nvli: data.sen_nvli,
+            sen_nota: 'Registrado en admisión'
+          }
+        });
+        
+        // Relacionar la sensibilidad principal con el niño
+        await tx.tm_ninos.update({
+          where: { nin_codi: nino.nin_codi },
+          data: { sen_codi: sen_codi }
         });
       }
 

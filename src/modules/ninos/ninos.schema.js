@@ -32,7 +32,11 @@ const inviteRepresentativeSchema = z.object({
     nin_nivd: z.string().max(20),
     rep_nomb: z.string().max(50),
     rep_apel: z.string().max(50),
-    usu_crro: z.string().email('Debe ser un correo electrónico válido')
+    rep_rela: z.string().min(2).max(20),
+    rep_telf: z.string().min(7).max(15),
+    usu_crro: z.string().email('Debe ser un correo electrónico válido'),
+    sen_tipo: z.string().max(30).optional(),
+    sen_nvli: z.string().max(20).optional(),
   })
 });
 

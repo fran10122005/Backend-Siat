@@ -16,7 +16,13 @@ const envSchema = z.object({
   // WebAuthn (acceso rápido por huella). RP_ID y ORIGEN se derivan del frontend si no se definen.
   WEBAUTHN_RP_ID: z.string().default('localhost'),
   WEBAUTHN_RP_NAME: z.string().default('SIAT'),
-  WEBAUTHN_ORIGIN: z.string().default('http://localhost:5173')
+  WEBAUTHN_ORIGIN: z.string().default('http://localhost:5173'),
+  // Cloudinary (almacenamiento de fotos e informes PDF de pacientes)
+  // ← Completar con las credenciales de tu cuenta Cloudinary cuando las crees
+  CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),
+  CLOUDINARY_API_KEY: z.string().optional().default(''),
+  CLOUDINARY_API_SECRET: z.string().optional().default(''),
+  CLOUDINARY_UPLOAD_PRESET: z.string().optional().default('siat_unsigned')
 });
 
 const _env = envSchema.safeParse(process.env);
