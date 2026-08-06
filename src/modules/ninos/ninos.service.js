@@ -238,7 +238,7 @@ class NinosService {
       });
       emailSent = true;
     } catch (error) {
-      console.warn('⚠️ Error al enviar correo de invitación (SMTP no configurado):', error.message);
+      console.warn('⚠️ Error al enviar correo de invitación (EmailJS):', error.message);
     }
 
     // Imprimir las credenciales en los logs de consola para fácil desarrollo

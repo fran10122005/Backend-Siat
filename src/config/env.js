@@ -13,6 +13,11 @@ const envSchema = z.object({
   SMTP_PORT: z.string().default('465'),
   SMTP_USER: z.string().default(''),
   SMTP_PASS: z.string().default(''),
+  // EmailJS (envío de correos transaccionales). Se omiten los correos si no están configurados.
+  EMAILJS_SERVICE_ID: z.string().optional().default(''),
+  EMAILJS_TEMPLATE_ID: z.string().optional().default(''),
+  EMAILJS_PUBLIC_KEY: z.string().optional().default(''),
+  EMAILJS_PRIVATE_KEY: z.string().optional().default(''),
   // WebAuthn (acceso rápido por huella). RP_ID y ORIGEN se derivan del frontend si no se definen.
   WEBAUTHN_RP_ID: z.string().default('localhost'),
   WEBAUTHN_RP_NAME: z.string().default('SIAT'),

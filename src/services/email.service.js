@@ -1,31 +1,6 @@
-const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
 const handlebars = require('handlebars');
-
-let transporter;
-
-async function getTransporter() {
-  if (transporter) return transporter;
-
-  const isGmail = process.env.SMTP_HOST && process.env.SMTP_HOST.includes('gmail');
-  const transportConfig = {
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: Number(process.env.SMTP_PORT) || 465,
-    secure: String(process.env.SMTP_PORT) === '465',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  };
-
-  if (isGmail) {
-    transportConfig.service = 'gmail';
-  }
-
-  transporter = nodemailer.createTransport(transportConfig);
-  return transporter;
-}
 
 class EmailService {
   compileTemplate(templateName, context) {
@@ -50,50 +25,64 @@ class EmailService {
     return compiledBase;
   }
 
+  isConfigured() {
+    return Boolean(
+      process.env.EMAILJS_SERVICE_ID &&
+      process.env.EMAILJS_TEMPLATE_ID &&
+      process.env.EMAILJS_PUBLIC_KEY &&
+      process.env.EMAILJS_PRIVATE_KEY
+    );
+  }
+
   async sendEmail({ to, subject, templateName, context, html }) {
     try {
-      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-        console.warn(`📧 [SMTP no configurado] Correo omitido. Para: ${to} | Asunto: ${subject}`);
+      const {
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        EMAILJS_PUBLIC_KEY,
+        EMAILJS_PRIVATE_KEY
+      } = process.env;
+
+      if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY || !EMAILJS_PRIVATE_KEY) {
+        console.warn(`📧 [EmailJS no configurado completamente] Correo omitido. Para: ${to} | Asunto: ${subject}`);
+        console.warn('Revisa tus variables de entorno: EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_PUBLIC_KEY, EMAILJS_PRIVATE_KEY');
         return { skipped: true, to, subject };
       }
-
-      const mailTransporter = await getTransporter();
       
       let finalHtml = html;
       if (templateName && context) {
         finalHtml = this.compileTemplate(templateName, context);
       }
 
-      // Buscamos primero el Logo.png local en src/templates/Logo.png, 
-      // y como respaldo buscamos en el frontend SIAT.
-      let logoPath = path.join(__dirname, '../templates/Logo.png');
-      if (!fs.existsSync(logoPath)) {
-        logoPath = path.join(__dirname, '../../../SIAT/Logo.png');
-      }
-
-      const mailOptions = {
-        from: '"SIAT Soporte" <no-reply@siat-med.com>',
-        to,
-        subject,
-        html: finalHtml,
+      const payload = {
+        service_id: EMAILJS_SERVICE_ID,
+        template_id: EMAILJS_TEMPLATE_ID,
+        user_id: EMAILJS_PUBLIC_KEY,
+        accessToken: EMAILJS_PRIVATE_KEY,
+        template_params: {
+          to_email: to,
+          subject: subject,
+          html_content: finalHtml
+        }
       };
 
-      if (fs.existsSync(logoPath)) {
-        mailOptions.attachments = [
-          {
-            filename: 'Logo.png',
-            path: logoPath,
-            cid: 'logo_siat'
-          }
-        ];
+      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`EmailJS API error: ${response.status} ${errorText}`);
       }
 
-      const info = await mailTransporter.sendMail(mailOptions);
-      console.log('Correo enviado: %s', info.messageId);
-      
-      return info;
+      console.log('Correo enviado correctamente vía EmailJS a:', to);
+      return { success: true, to };
     } catch (error) {
-      console.error('Error al enviar el correo: ', error);
+      console.error('Error al enviar el correo con EmailJS: ', error);
       throw new Error('Error al enviar el correo');
     }
   }

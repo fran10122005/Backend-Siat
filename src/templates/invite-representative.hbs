@@ -1,13 +1,28 @@
-<h2 style="color: #003366; margin-top: 0;">¡Hola, {{nombre_padre}}!</h2>
-<p>La <strong>Fundación Una Luz Para el Autismo</strong> te da la bienvenida al portal SIAT (Sistema de Inteligencia Artificial Temprana).</p>
-<p>Se ha registrado el perfil de tu hijo(a) <strong>{{nombre_nino}}</strong> en nuestra plataforma de monitoreo clínico y biotelemétrico.</p>
-<p>Para poder visualizar sus constantes fisiológicas, registrar su bitácora en el hogar y colaborar con su terapeuta, puedes acceder a tu cuenta con las siguientes credenciales:</p>
-<div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #003366; margin: 20px 0;">
-  <strong>Correo Electrónico:</strong> {{email}}<br>
-  <strong>Contraseña Provisional:</strong> {{password}}
+<h1 style="margin:0 0 6px 0; font-size:22px; color:#0b2d52;">¡Hola, {{nombre_padre}}!</h1>
+<p style="margin:0 0 18px 0; color:#64748b; font-size:13px;">Bienvenida al portal SIAT</p>
+
+<p style="margin:0 0 14px 0;">La <strong>Fundación Una Luz Para el Autismo</strong> te da la bienvenida al portal <strong>SIAT</strong> (Sistema de Inteligencia Artificial Temprana).</p>
+
+<p style="margin:0 0 14px 0;">Se ha registrado el perfil de tu hijo(a) <strong>{{nombre_nino}}</strong> en nuestra plataforma de monitoreo clínico y biotelemétrico. A través de tu cuenta podrás:</p>
+
+<ul style="margin:0 0 18px 0; padding-left:20px; color:#334155;">
+  <li style="margin-bottom:6px;">Visualizar sus constantes fisiológicas y su evolución</li>
+  <li style="margin-bottom:6px;">Registrar su bitácora diaria desde casa</li>
+  <li style="margin-bottom:6px;">Colaborar y comunicarte con su terapeuta asignado</li>
+</ul>
+
+<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:18px 20px; margin:20px 0;">
+  <p style="margin:0 0 10px 0; font-size:13px; font-weight:700; color:#0b2d52; text-transform:uppercase; letter-spacing:1px;">Tus credenciales de acceso</p>
+  <p style="margin:0 0 8px 0; font-size:14px;"><span style="color:#64748b;">Correo electrónico:</span> <strong style="color:#0b2d52;">{{email}}</strong></p>
+  <p style="margin:0 0 6px 0; font-size:14px;"><span style="color:#64748b;">Contraseña provisional:</span> <strong style="color:#0b2d52; font-family:Consolas, Menlo, monospace;">{{password}}</strong></p>
 </div>
-<div style="text-align: center; margin: 30px 0;">
-  <a href="{{loginUrl}}" class="btn" style="background-color: #007BFF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Iniciar Sesión en SIAT</a>
+
+<div style="text-align:center; margin:24px 0;">
+  <a href="{{loginUrl}}" style="display:inline-block; background:#0b2d52; color:#ffffff !important; text-decoration:none; padding:13px 32px; border-radius:10px; font-weight:700; font-size:15px;">Iniciar Sesión en SIAT</a>
 </div>
-<p>Por razones de seguridad, te recomendamos cambiar tu contraseña una vez hayas iniciado sesión por primera vez desde tu perfil.</p>
-<p>Si tienes alguna duda o no solicitaste este registro, por favor ponte en contacto con la administración de la Fundación.</p>
+
+<div style="background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; border-radius:10px; padding:14px 16px; margin:0 0 18px 0; font-size:13px; color:#92400e;">
+  ⚠️ Por razones de seguridad, cambia tu contraseña después de tu primer inicio de sesión desde tu perfil.
+</div>
+
+<p style="margin:0; font-size:13px; color:#475569;">Si tienes alguna duda o no solicitaste este registro, por favor ponte en contacto con la administración de la Fundación.</p>

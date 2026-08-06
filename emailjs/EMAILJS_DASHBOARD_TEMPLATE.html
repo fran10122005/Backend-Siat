@@ -1,0 +1,32 @@
+<!--
+  ═══════════════════════════════════════════════════════════════════════
+  SIAT — PLANTILLA MAESTRO PARA EMAILJS
+  ═══════════════════════════════════════════════════════════════════════
+
+  CÓMO USAR ESTA PLANTILLA (pasos rápidos):
+
+  1. Entra a https://dashboard.emailjs.com → pestaña "Email Templates" → "+ Create New Template".
+  2. En el editor, pega TODO este archivo en la pestaña "Content" (HTML).
+     Lo único que hace es inyectar el HTML ya compilado por el backend.
+  3. En "Settings" (arriba a la derecha):
+       • Subject:  {{subject}}
+       • Reply To: (dejar vacío o el correo de soporte)
+  4. En la pestaña "Variables" debe reconocer automáticamente estas variables:
+       • to_email     → destinatario del correo
+       • subject      → asunto del correo
+       • html_content → cuerpo HTML completo compilado con Handlebars
+  5. Guarda la plantilla y copia su ID (formato template_XXXXXXX) a EMAILJS_TEMPLATE_ID
+     en tu archivo .env.
+
+  NOTA: El diseño final de cada correo vive en el backend:
+    src/templates/base.hbs                (estructura y estilos)
+    src/templates/recover-password.hbs     (recuperar contraseña)
+    src/templates/welcome-especialista.hbs (bienvenida especialista)
+    src/templates/invite-representative.hbs (invitación representante)
+    src/templates/alert-notification.hbs   (alerta de monitoreo)
+
+  Para cambiar el logo, sube src/templates/Logo.png a Cloudinary y usa su URL
+  en base.hbs reemplazando el .logo-badge.
+  ═══════════════════════════════════════════════════════════════════════
+-->
+{{html_content}}

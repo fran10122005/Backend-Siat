@@ -1,12 +1,22 @@
-<h2 style="color: #003366; margin-top: 0;">¡Bienvenido/a a SIAT, Dr(a). {{nombre}}!</h2>
-<p>Has sido dado de alta exitosamente como especialista médico en nuestra plataforma.</p>
-<p>Tus credenciales de acceso provisionales son:</p>
-<div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #003366; margin: 20px 0;">
-  <strong>Correo Electrónico:</strong> {{email}}<br>
-  <strong>Contraseña:</strong> {{password}}
+<h1 style="margin:0 0 6px 0; font-size:22px; color:#0b2d52;">¡Bienvenido/a a SIAT, {{nombre}}!</h1>
+<p style="margin:0 0 18px 0; color:#64748b; font-size:13px;">Credenciales de acceso al portal de especialistas</p>
+
+<p style="margin:0 0 14px 0;">Hola <strong>{{nombre}}</strong>,</p>
+
+<p style="margin:0 0 14px 0;">Has sido dado de alta exitosamente como <strong>especialista médico</strong> en la plataforma SIAT. Ya puedes acceder para gestionar tus pacientes, registrar sesiones y monitorear su evolución.</p>
+
+<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:18px 20px; margin:20px 0;">
+  <p style="margin:0 0 10px 0; font-size:13px; font-weight:700; color:#0b2d52; text-transform:uppercase; letter-spacing:1px;">Tus credenciales provisionales</p>
+  <p style="margin:0 0 8px 0; font-size:14px;"><span style="color:#64748b;">Correo electrónico:</span> <strong style="color:#0b2d52;">{{email}}</strong></p>
+  <p style="margin:0 0 6px 0; font-size:14px;"><span style="color:#64748b;">Contraseña:</span> <strong style="color:#0b2d52; font-family:Consolas, Menlo, monospace;">{{password}}</strong></p>
 </div>
-<p>Por razones de seguridad, te recomendamos cambiar tu contraseña una vez hayas iniciado sesión por primera vez desde tu perfil.</p>
-<div style="text-align: center;">
-  <a href="{{loginUrl}}" class="btn">Iniciar Sesión Ahora</a>
+
+<div style="background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; border-radius:10px; padding:14px 16px; margin:0 0 20px 0; font-size:13px; color:#92400e;">
+  ⚠️ Por razones de seguridad, cambia tu contraseña después de tu primer inicio de sesión desde tu perfil.
 </div>
-<p>Si tienes alguna duda o problema para acceder, por favor comunícate con la dirección o soporte técnico.</p>
+
+<div style="text-align:center; margin:24px 0;">
+  <a href="{{loginUrl}}" style="display:inline-block; background:#0b2d52; color:#ffffff !important; text-decoration:none; padding:13px 32px; border-radius:10px; font-weight:700; font-size:15px;">Iniciar Sesión Ahora</a>
+</div>
+
+<p style="margin:0 0 6px 0; font-size:13px; color:#475569;">Si tienes alguna duda o problema para acceder, por favor comunícate con la dirección o el soporte técnico de la institución.</p>

@@ -1,22 +1,29 @@
-<div style="text-align: center; margin-bottom: 20px;">
-  <h2 style="color: #E63946; margin: 0;">⚠️ Alerta de Sobrecarga Sensorial</h2>
+<div style="text-align:center; margin-bottom:6px;">
+  <span style="display:inline-block; background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; border-radius:999px; padding:6px 16px; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px;">Alerta de monitoreo</span>
+</div>
+<h1 style="margin:0 0 18px 0; text-align:center; font-size:22px; color:#b91c1c;">⚠️ Sobrecarga Sensorial Detectada</h1>
+
+<p style="margin:0 0 14px 0;">Hola <strong>{{nombre_padre}}</strong>,</p>
+
+<p style="margin:0 0 14px 0;">El sistema SIAT ha detectado un <strong>evento inusual</strong> en el monitoreo de <strong>{{nombre_nino}}</strong>. El especialista asignado ya ha sido notificado en el panel de control.</p>
+
+<div style="background:#fef2f2; border:1px solid #fecaca; border-left:4px solid #dc2626; border-radius:10px; padding:16px 18px; margin:20px 0;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px; color:#334155;">
+    <tr>
+      <td style="padding:4px 0; color:#64748b; width:120px;">Tipo de alerta</td>
+      <td style="padding:4px 0; font-weight:700; color:#b91c1c;">{{tipo_alerta}}</td>
+    </tr>
+    <tr>
+      <td style="padding:4px 0; color:#64748b;">Fecha y hora</td>
+      <td style="padding:4px 0; font-weight:600;">{{fecha_hora}}</td>
+    </tr>
+  </table>
 </div>
 
-<p>Hola <strong>{{nombre_padre}}</strong>,</p>
+<p style="margin:0 0 16px 0;">Te recomendamos ingresar al sistema SIAT para ver el detalle completo del historial y las recomendaciones correspondientes.</p>
 
-<p>El sistema SIAT ha detectado un evento inusual en el monitoreo de <strong>{{nombre_nino}}</strong>.</p>
-
-<div style="background-color: #FFF0F0; border-left: 4px solid #E63946; padding: 15px; margin: 20px 0; border-radius: 4px;">
-  <p style="margin: 0 0 10px 0;"><strong>Tipo de Alerta:</strong> {{tipo_alerta}}</p>
-  <p style="margin: 0;"><strong>Fecha y Hora:</strong> {{fecha_hora}}</p>
+<div style="text-align:center; margin:24px 0;">
+  <a href="{{loginUrl}}" style="display:inline-block; background:#dc2626; color:#ffffff !important; text-decoration:none; padding:13px 32px; border-radius:10px; font-weight:700; font-size:15px;">Ingresar a SIAT</a>
 </div>
 
-<p>El especialista asignado ya ha sido notificado en el panel de control. Te recomendamos ingresar al sistema SIAT para ver los detalles completos del historial y las recomendaciones correspondientes.</p>
-
-<div style="text-align: center; margin-top: 30px;">
-  <a href="http://localhost:5173" style="background-color: #007BFF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Ingresar a SIAT</a>
-</div>
-
-<p style="margin-top: 30px; font-size: 0.9em; color: #666;">
-  Si tienes alguna duda urgente, por favor comunícate directamente con la institución.
-</p>
+<p style="margin:0; font-size:13px; color:#64748b;">Si tienes alguna duda urgente, por favor comunícate directamente con la institución o con el especialista a cargo.</p>

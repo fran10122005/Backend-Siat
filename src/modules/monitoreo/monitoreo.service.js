@@ -190,14 +190,15 @@ class MonitoreoService {
         });
       }
 
-      // Enviar correo real al representante con los datos SMTP configurados.
-      // Si SMTP no está configurado, se omite con aviso en vez de fallar la telemetría.
-      if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+      // Enviar correo real al representante con los datos EmailJS configurados.
+      // Si EmailJS no está configurado, se omite con aviso en vez de fallar la telemetría.
+      if (emailService.isConfigured()) {
         try {
           const representante = sesion.tm_ninos.tm_repre[0];
           if (representante && representante.usu_codi) {
             const userRep = await prisma.tm_usuar.findUnique({ where: { usu_codi: representante.usu_codi } });
             if (userRep && userRep.usu_crro) {
+              const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
               await emailService.sendEmail({
                 to: userRep.usu_crro,
                 subject: `Alerta SIAT - ${sesion.tm_ninos.nin_nomb}`,
@@ -206,7 +207,8 @@ class MonitoreoService {
                   nombre_padre: `${representante.rep_nomb} ${representante.rep_apel}`,
                   nombre_nino: sesion.tm_ninos.nin_nomb,
                   tipo_alerta: alerta.ale_meto,
-                  fecha_hora: new Date().toLocaleString('es-ES')
+                  fecha_hora: new Date().toLocaleString('es-ES'),
+                  loginUrl: `${frontendUrl}/login`
                 }
               });
             }
