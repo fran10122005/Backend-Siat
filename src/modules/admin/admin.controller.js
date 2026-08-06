@@ -140,6 +140,13 @@ const toggleUser = catchAsync(async (req, res) => {
   res.json({ success: true, data: result });
 });
 
+const resetUserPassword = catchAsync(async (req, res) => {
+  const { usu_codi } = req.params;
+  const result = await adminService.resetUserPassword(usu_codi);
+  await adminService.logAudit(req.user.usu_codi, 'WARN', `Contraseña restablecida para el usuario ${usu_codi}`, req.ip);
+  res.json({ success: true, data: result });
+});
+
 const getAuditoria = catchAsync(async (req, res) => {
   const logs = await adminService.listAuditoria();
   res.status(200).json({ data: logs });
@@ -163,5 +170,6 @@ module.exports = {
   toggleEspecialidad,
   listUsers,
   toggleUser,
+  resetUserPassword,
   getAuditoria
 };

@@ -3,6 +3,7 @@ const authService = require('../auth/auth.service');
 const emailService = require('../../services/email.service');
 const env = require('../../config/env');
 const AppError = require('../../utils/AppError');
+const bcrypt = require('bcrypt');
 const { generateId } = require('../../utils/idGenerator');
 
 class AdminService {
@@ -317,6 +318,25 @@ class AdminService {
       where: { usu_codi },
       data: { usu_estd: activo }
     });
+  }
+
+  async resetUserPassword(usu_codi) {
+    const user = await prisma.tm_usuar.findUnique({ where: { usu_codi } });
+    if (!user) throw new AppError('Usuario no encontrado', 404);
+
+    const newPassword = 'SiatDoc2026*';
+    const hashedClve = await bcrypt.hash(newPassword, 10);
+
+    await prisma.tm_usuar.update({
+      where: { usu_codi },
+      data: { usu_clve: hashedClve }
+    });
+
+    return {
+      usu_codi: user.usu_codi,
+      usu_crro: user.usu_crro,
+      password_generada: newPassword
+    };
   }
 
   async getCatalogos() {
