@@ -28,8 +28,12 @@ cuenta, el servicio, la plantilla y completar las variables de entorno.
 1. Ve a **"Email Templates"** → **"+ Create New Template"**.
 2. En la pestaña **"Content"**, borra el contenido y pega **TODO** el archivo
    [`emailjs/EMAILJS_DASHBOARD_TEMPLATE.html`](emailjs/EMAILJS_DASHBOARD_TEMPLATE.html).
-   El contenido de la plantilla es simplemente `{{html_content}}`: el backend
-   compila el diseño completo (Handlebars) y lo inyecta aquí.
+   El contenido inyecta el HTML compilado por el backend con **triple llave**
+   `{{{html_content}}}`.
+   > ⚠️ **Importante:** la variable debe estar **envuelta en una estructura HTML**
+   > (`<!DOCTYPE html>...<body>{{{html_content}}}</body></html>`). Si el Content es
+   > solo `{{{html_content}}}` sin etiquetas, EmailJS envía el correo como texto
+   > plano y se ve el código HTML crudo en lugar del diseño renderizado.
 3. En **"Settings"** (panel superior derecho):
    - **Subject**: `{{subject}}`
    - **Reply To**: déjalo vacío (o el correo de soporte de SIAT).

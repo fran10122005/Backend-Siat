@@ -7,8 +7,9 @@
 
   1. Entra a https://dashboard.emailjs.com → pestaña "Email Templates" → "+ Create New Template".
   2. En el editor, pega TODO este archivo en la pestaña "Content" (HTML).
-     Lo único que hace es inyectar el HTML ya compilado por el backend.
-     IMPORTANTE: usa TRIPLE llave {{{html_content}}} para que EmailJS NO escape el HTML.
+     IMPORTANTE: el contenido debe estar envuelto en una estructura HTML completa
+     (doctype + html + body) para que EmailJS envíe el correo como text/html.
+     Si el content es solo la variable, EmailJS lo manda como texto plano y se ve el código.
   3. En "Settings" (arriba a la derecha):
        • Subject:  {{subject}}
        • Reply To: (dejar vacío o el correo de soporte)
@@ -16,6 +17,7 @@
        • to_email     → destinatario del correo
        • subject      → asunto del correo
        • html_content → cuerpo HTML completo compilado con Handlebars
+     Se usa TRIPLE llave {{{html_content}}} para que EmailJS NO escape el HTML.
   5. Guarda la plantilla y copia su ID (formato template_XXXXXXX) a EMAILJS_TEMPLATE_ID
      en tu archivo .env.
 
@@ -30,4 +32,13 @@
   en base.hbs reemplazando el .logo-badge.
   ═══════════════════════════════════════════════════════════════════════
 -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
 {{{html_content}}}
+</body>
+</html>
