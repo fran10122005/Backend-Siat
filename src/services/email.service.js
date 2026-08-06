@@ -44,9 +44,14 @@ class EmailService {
       } = process.env;
 
       if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY || !EMAILJS_PRIVATE_KEY) {
-        console.warn(`📧 [EmailJS no configurado completamente] Correo omitido. Para: ${to} | Asunto: ${subject}`);
-        console.warn('Revisa tus variables de entorno: EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_PUBLIC_KEY, EMAILJS_PRIVATE_KEY');
-        return { skipped: true, to, subject };
+        const missing = [
+          ['EMAILJS_SERVICE_ID', EMAILJS_SERVICE_ID],
+          ['EMAILJS_TEMPLATE_ID', EMAILJS_TEMPLATE_ID],
+          ['EMAILJS_PUBLIC_KEY', EMAILJS_PUBLIC_KEY],
+          ['EMAILJS_PRIVATE_KEY', EMAILJS_PRIVATE_KEY]
+        ].filter(([, v]) => !v).map(([k]) => k);
+        console.warn(`📧 [EmailJS no configurado] Faltan: ${missing.join(', ')}. Correo omitido. Para: ${to} | Asunto: ${subject}`);
+        return { skipped: true, to, subject, missing };
       }
       
       let finalHtml = html;

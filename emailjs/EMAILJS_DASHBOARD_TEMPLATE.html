@@ -8,6 +8,7 @@
   1. Entra a https://dashboard.emailjs.com → pestaña "Email Templates" → "+ Create New Template".
   2. En el editor, pega TODO este archivo en la pestaña "Content" (HTML).
      Lo único que hace es inyectar el HTML ya compilado por el backend.
+     IMPORTANTE: usa TRIPLE llave {{{html_content}}} para que EmailJS NO escape el HTML.
   3. En "Settings" (arriba a la derecha):
        • Subject:  {{subject}}
        • Reply To: (dejar vacío o el correo de soporte)
@@ -29,4 +30,4 @@
   en base.hbs reemplazando el .logo-badge.
   ═══════════════════════════════════════════════════════════════════════
 -->
-{{html_content}}
+{{{html_content}}}
