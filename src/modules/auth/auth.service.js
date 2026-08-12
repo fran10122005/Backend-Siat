@@ -182,6 +182,9 @@ class AuthService {
           esp_nomb: data.esp_nomb,
           esp_apel: data.esp_apel,
           esp_gner: data.esp_gner || 'F',
+          esp_tdoc: data.esp_tdoc || 'V',
+          esp_fnac: data.esp_fnac ? new Date(data.esp_fnac) : null,
+          esp_foto: data.esp_foto || null,
           esp_licencia: data.esp_licencia || null,
           esp_telf: data.esp_telf || null
         }
@@ -414,7 +417,12 @@ class AuthService {
             esp_nomb: profileData.nomb || usuario.tm_espec.esp_nomb,
             esp_apel: profileData.apel || usuario.tm_espec.esp_apel,
             esp_telf: profileData.telf !== undefined ? profileData.telf : usuario.tm_espec.esp_telf,
-            esp_licencia: profileData.licencia !== undefined ? profileData.licencia : usuario.tm_espec.esp_licencia
+            esp_licencia: profileData.licencia !== undefined ? profileData.licencia : usuario.tm_espec.esp_licencia,
+            esp_tdoc: profileData.tdoc !== undefined ? profileData.tdoc : usuario.tm_espec.esp_tdoc,
+            esp_fnac: profileData.fnac !== undefined
+              ? (profileData.fnac ? new Date(profileData.fnac) : null)
+              : usuario.tm_espec.esp_fnac,
+            esp_foto: profileData.foto !== undefined ? profileData.foto : usuario.tm_espec.esp_foto
           }
         });
       } else if (usuario.rol_codi === 'ROL_REP' && usuario.tm_repre) {

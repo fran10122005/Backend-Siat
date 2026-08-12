@@ -75,6 +75,9 @@ model tm_espec {
   esp_apel     String  @db.VarChar(50)
   esc_codi     String  @db.VarChar(10)
   esp_gner     gender_enum @default(F)
+  esp_tdoc     String  @default("V") @db.VarChar(2)
+  esp_fnac     DateTime? @db.Date
+  esp_foto     String? @db.Text
   esp_licencia String? @db.VarChar(50)
   esp_telf     String? @db.VarChar(15)
 

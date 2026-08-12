@@ -67,8 +67,8 @@ const createEspecialista = catchAsync(async (req, res) => {
 });
 
 const assignPaciente = catchAsync(async (req, res) => {
-  const { nin_codi, esp_codi } = req.body;
-  const result = await adminService.assignNinoToEspecialista(nin_codi, esp_codi);
+  const { nin_codi, esp_codi, asi_inic, asi_stdo } = req.body;
+  const result = await adminService.assignNinoToEspecialista(nin_codi, esp_codi, { asi_inic, asi_stdo });
   await adminService.logAudit(req.user.usu_codi, 'ASIGNACION', `Paciente ${nin_codi} asignado a especialista ${esp_codi}`, req.ip);
   res.status(201).json({ success: true, data: result });
 });

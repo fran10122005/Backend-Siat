@@ -84,6 +84,9 @@ class AdminService {
       esp_codi: data.esp_codi || generateId('E'),
       usu_codi: generateId('U'),
       esp_licencia: data.esp_licencia,
+      esp_tdoc: data.esp_tdoc || 'V',
+      esp_fnac: data.esp_fnac ? new Date(data.esp_fnac) : undefined,
+      esp_foto: data.esp_foto,
       esp_gner: data.esp_gner || 'F',
       esp_telf: data.esp_telf,
       esc_codi: data.esc_codi,
@@ -112,7 +115,7 @@ class AdminService {
     return { ...result, password_generada: password };
   }
 
-  async assignNinoToEspecialista(nin_codi, esp_codi) {
+  async assignNinoToEspecialista(nin_codi, esp_codi, options = {}) {
     const nino = await prisma.tm_ninos.findUnique({ where: { nin_codi } });
     if (!nino) throw new AppError('Niño no encontrado', 404);
 
@@ -132,8 +135,8 @@ class AdminService {
         asi_codi: generateId('A'),
         nin_codi: nin_codi,
         esp_codi: esp_codi,
-        asi_inic: new Date(),
-        asi_stdo: 'Activo'
+        asi_inic: options.asi_inic ? new Date(options.asi_inic) : new Date(),
+        asi_stdo: options.asi_stdo || 'Activo'
       }
     });
 
@@ -150,6 +153,15 @@ class AdminService {
         data: {
           esp_nomb: data.esp_nomb !== undefined ? data.esp_nomb : undefined,
           esp_apel: data.esp_apel !== undefined ? data.esp_apel : undefined,
+          esp_tdoc: data.esp_tdoc !== undefined ? data.esp_tdoc : undefined,
+          esp_fnac: data.esp_fnac !== undefined
+            ? (data.esp_fnac ? new Date(data.esp_fnac) : null)
+            : undefined,
+          esp_foto: data.esp_foto !== undefined ? data.esp_foto : undefined,
+          esp_licencia: data.esp_licencia !== undefined ? data.esp_licencia : undefined,
+          esp_telf: data.esp_telf !== undefined ? data.esp_telf : undefined,
+          esp_gner: data.esp_gner !== undefined ? data.esp_gner : undefined,
+          esc_codi: data.esc_codi !== undefined ? data.esc_codi : undefined,
         }
       });
 

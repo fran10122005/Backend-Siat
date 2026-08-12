@@ -25,12 +25,19 @@ const registerRepreSchema = z.object({
 
 const registerEspSchema = z.object({
   body: z.object({
-    usu_codi: z.string().max(10),
+    usu_codi: z.string().max(10).optional(),
     usu_crro: z.string().email().max(50),
     usu_clve: z.string().min(6).max(60),
-    esp_codi: z.string().max(11),
+    esp_codi: z.string().max(11).optional(),
     esp_nomb: z.string().max(50),
-    esp_apel: z.string().max(50)
+    esp_apel: z.string().max(50),
+    esp_tdoc: z.enum(['V', 'E', 'P']).optional(),
+    esp_fnac: z.string().refine((v) => !v || !isNaN(new Date(v).getTime()), 'Fecha de nacimiento inválida').optional(),
+    esp_licencia: z.string().max(50).optional(),
+    esp_telf: z.string().max(15).optional(),
+    esp_gner: z.enum(['M', 'F']).optional(),
+    esc_codi: z.string().max(10).optional(),
+    ins_codi: z.string().max(11).optional()
   })
 });
 
@@ -62,6 +69,9 @@ const updateMeSchema = z.object({
     apel: z.string().min(2, 'El apellido debe tener al menos 2 caracteres').max(50, 'El apellido no puede exceder 50 caracteres').optional(),
     telf: z.string().max(15, 'El teléfono no puede exceder 15 caracteres').optional().nullable(),
     licencia: z.string().max(20, 'La licencia no puede exceder 20 caracteres').optional().nullable(),
+    tdoc: z.enum(['V', 'E', 'P'], 'El tipo de documento debe ser V, E o P').optional(),
+    fnac: z.string().refine((v) => !v || !isNaN(new Date(v).getTime()), 'Fecha de nacimiento inválida').optional().nullable(),
+    foto: z.string().url('URL de foto inválida').optional().nullable(),
     rela: z.string().max(20, 'El parentesco no puede exceder 20 caracteres').optional().nullable(),
     currentPassword: z.string().optional(),
     password: z
