@@ -3,7 +3,8 @@ const { z } = require('zod');
 const aceptarConsentimientoSchema = z.object({
   nin_codi: z.string().min(1, 'El código del niño es requerido'),
   con_vers: z.string().min(1, 'La versión del documento es requerida'),
-  con_acep: z.boolean().refine(val => val === true, {
+  // La aceptación es implícita al llamar a /aceptar; se rechaza solo si envían false explícito.
+  con_acep: z.boolean().default(true).refine(val => val === true, {
     message: 'Debe aceptar los términos para continuar'
   })
 });

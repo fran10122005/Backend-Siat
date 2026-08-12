@@ -1,9 +1,13 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const helmet = require('helmet');
 
 const app = express();
 const { isOriginAllowed } = require('./middleware/cors');
+
+// Headers de seguridad (CSP, X-Frame-Options, HSTS, etc.)
+app.use(helmet());
 
 // Configurar CORS: origen definido en el helper compartido (middleware/cors.js)
 app.use(cors({

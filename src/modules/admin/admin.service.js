@@ -4,7 +4,18 @@ const emailService = require('../../services/email.service');
 const env = require('../../config/env');
 const AppError = require('../../utils/AppError');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const { generateId } = require('../../utils/idGenerator');
+
+// Contraseña provisional criptográficamente aleatoria (sin caracteres ambiguos ni confusos)
+const generateRandomPassword = (length = 12) => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%&*';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars[crypto.randomInt(chars.length)];
+  }
+  return password;
+};
 
 class AdminService {
   async logAudit(usu_codi, tipo, descripcion, ip = null) {
@@ -63,7 +74,7 @@ class AdminService {
   }
 
   async createEspecialista(data) {
-    const password = data.password || 'SiatDoc2026*';
+    const password = data.password || generateRandomPassword();
     
     const payload = {
       usu_crro: data.email,
@@ -324,7 +335,7 @@ class AdminService {
     const user = await prisma.tm_usuar.findUnique({ where: { usu_codi } });
     if (!user) throw new AppError('Usuario no encontrado', 404);
 
-    const newPassword = 'SiatDoc2026*';
+    const newPassword = generateRandomPassword();
     const hashedClve = await bcrypt.hash(newPassword, 10);
 
     await prisma.tm_usuar.update({

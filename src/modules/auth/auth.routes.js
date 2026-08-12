@@ -12,22 +12,22 @@ const { authLimiter } = require('../../middleware/rateLimiter');
 router.post('/login', authLimiter, validateSchema(schemas.loginSchema), authController.login);
 
 // POST /api/auth/register-repre
-router.post('/register/repre', validateSchema(schemas.registerRepreSchema), authController.registerRepre);
+router.post('/register/repre', authLimiter, validateSchema(schemas.registerRepreSchema), authController.registerRepre);
 
 // POST /api/auth/register-esp
-router.post('/register/esp', validateSchema(schemas.registerEspSchema), authController.registerEsp);
+router.post('/register/esp', authLimiter, validateSchema(schemas.registerEspSchema), authController.registerEsp);
 
 // POST /api/auth/forgot-password
-router.post('/forgot-password', validateSchema(schemas.forgotPasswordSchema), authController.forgotPassword);
+router.post('/forgot-password', authLimiter, validateSchema(schemas.forgotPasswordSchema), authController.forgotPassword);
 
 // POST /api/auth/reset-password
-router.post('/reset-password', validateSchema(schemas.resetPasswordSchema), authController.resetPassword);
+router.post('/reset-password', authLimiter, validateSchema(schemas.resetPasswordSchema), authController.resetPassword);
 
 // GET /api/auth/invitation-details
 router.get('/invitation-details', authController.getInvitationDetails);
 
 // POST /api/auth/complete-invitation
-router.post('/complete-invitation', validateSchema(schemas.completeInvitationSchema), authController.completeInvitation);
+router.post('/complete-invitation', authLimiter, validateSchema(schemas.completeInvitationSchema), authController.completeInvitation);
 
 // GET /api/auth/me (Obtener perfil del usuario)
 router.get('/me', authenticate, authController.getMe);
