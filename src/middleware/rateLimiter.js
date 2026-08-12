@@ -1,7 +1,8 @@
 const rateLimit = require('express-rate-limit');
 
-// No limitar en entorno de test para no interferir con las pruebas automatizadas
-const skipTest = () => process.env.NODE_ENV === 'test';
+// El rate limiter solo se activa en producción.
+// En desarrollo/test se omite para no interferir con pruebas manuales y automatizadas.
+const skipNotProduction = () => process.env.NODE_ENV !== 'production';
 
 // Límite global por IP: protege contra abuso general del API
 const globalLimiter = rateLimit({
@@ -10,7 +11,7 @@ const globalLimiter = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Demasiadas solicitudes. Intenta de nuevo en unos minutos.' },
-  skip: skipTest
+  skip: skipNotProduction
 });
 
 // Límite estricto para endpoints sensibles (login, registro, recuperación de contraseña)
@@ -21,7 +22,7 @@ const authLimiter = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Demasiados intentos de autenticación. Intenta de nuevo en 15 minutos.' },
-  skip: skipTest
+  skip: skipNotProduction
 });
 
 module.exports = { globalLimiter, authLimiter };

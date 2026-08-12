@@ -9,6 +9,9 @@ const { isOriginAllowed } = require('./middleware/cors');
 // Headers de seguridad (CSP, X-Frame-Options, HSTS, etc.)
 app.use(helmet());
 
+// Detrás del proxy de Render/Heroku para que rate-limit y req.ip identifiquen al cliente real
+app.set('trust proxy', 1);
+
 // Configurar CORS: origen definido en el helper compartido (middleware/cors.js)
 app.use(cors({
   origin: function (origin, callback) {
