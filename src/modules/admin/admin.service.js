@@ -58,7 +58,12 @@ class AdminService {
       include: {
         tm_usuar: { select: { usu_crro: true, usu_estd: true } },
         tm_insti: true,
-        tm_especi: true
+        tm_especi: true,
+        _count: {
+          select: {
+            tc_asign: { where: { asi_stdo: 'Activo' } }
+          }
+        }
       }
     });
   }
