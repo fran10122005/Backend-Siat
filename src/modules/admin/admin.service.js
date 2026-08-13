@@ -382,7 +382,7 @@ class AdminService {
   }
 
   async getCatalogos() {
-    const especialidades = await prisma.tm_especi.findMany({ where: { esc_estd: true } });
+    const especialidades = await prisma.tm_especi.findMany({ orderBy: { esc_nomb: 'asc' } });
     const instituciones = await prisma.tm_insti.findMany({ where: { ins_estd: true } });
     return { especialidades, instituciones };
   }
