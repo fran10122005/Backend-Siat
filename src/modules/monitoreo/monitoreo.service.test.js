@@ -16,7 +16,7 @@ const baseSession = {
   tm_ninos: {
     nin_codi: 'N1',
     nin_nomb: 'Leo',
-    tm_repre: [{ usu_codi: 'U1' }]
+    tm_repre_ninos: [{ tm_repre: { usu_codi: 'U1' } }]
   }
 };
 

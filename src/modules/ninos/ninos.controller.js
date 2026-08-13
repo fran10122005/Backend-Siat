@@ -33,7 +33,7 @@ const obtenerExpedienteRepresentante = catchAsync(async (req, res) => {
 
 const obtenerBitacoras = catchAsync(async (req, res) => {
   const { usu_codi } = req.user;
-  const result = await ninosService.getBitacoras(usu_codi);
+  const result = await ninosService.getBitacoras(usu_codi, req.query.nin_codi);
   res.status(200).json({ data: result });
 });
 

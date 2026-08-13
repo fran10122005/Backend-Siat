@@ -21,18 +21,24 @@ const getHistorialNino = catchAsync(async (req, res) => {
 const obtenerAlertasRepresentante = catchAsync(async (req, res) => {
   // 1. Obtener al representante autenticado
   const repre = await prisma.tm_repre.findUnique({
-    where: { usu_codi: req.user.usu_codi }
+    where: { usu_codi: req.user.usu_codi },
+    include: { tm_repre_ninos: true }
   });
 
   if (!repre) {
     return res.status(404).json({ error: 'Representante no encontrado' });
   }
 
-  // 2. Obtener alertas de las sesiones de su niño
+  const ninos = repre.tm_repre_ninos.map(rn => rn.nin_codi);
+  if (ninos.length === 0) {
+    return res.status(200).json({ status: 'ok', data: [] });
+  }
+
+  // 2. Obtener alertas de las sesiones de sus niños
   const alertas = await prisma.tr_alert.findMany({
     where: {
       tr_sesio: {
-        nin_codi: repre.nin_codi
+        nin_codi: { in: ninos }
       }
     },
     include: {
@@ -59,12 +65,15 @@ const obtenerAlertasRepresentante = catchAsync(async (req, res) => {
 
 const obtenerEvolucionRepresentante = catchAsync(async (req, res) => {
   const repre = await prisma.tm_repre.findUnique({
-    where: { usu_codi: req.user.usu_codi }
+    where: { usu_codi: req.user.usu_codi },
+    include: { tm_repre_ninos: true }
   });
 
   if (!repre) {
     return res.status(404).json({ error: 'Representante no encontrado' });
   }
+
+  const ninos = repre.tm_repre_ninos.map(rn => rn.nin_codi);
 
   // Definir rangos del día de hoy
   const startOfDay = new Date();
@@ -76,7 +85,7 @@ const obtenerEvolucionRepresentante = catchAsync(async (req, res) => {
   // Buscar las sesiones de hoy con su telemetría
   const sesiones = await prisma.tr_sesio.findMany({
     where: {
-      nin_codi: repre.nin_codi,
+      nin_codi: { in: ninos },
       ses_inic: {
         gte: startOfDay,
         lte: endOfDay

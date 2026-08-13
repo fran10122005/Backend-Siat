@@ -9,16 +9,18 @@ class NinosService {
   async crearNinoParaRepresentante(usu_codi, data) {
     // Verificar que el usuario sea representante
     const repre = await prisma.tm_repre.findUnique({
-      where: { usu_codi },
-      include: { tm_ninos: true }
+      where: { usu_codi }
     });
 
     if (!repre) {
       throw new Error('Usuario no está registrado como representante');
     }
 
-    // Obtener la institución del representante (a través de su niño principal)
-    let instCodi = data.ins_codi || repre?.tm_ninos?.ins_codi;
+    // Obtener la institución del representante (a través de su primer niño)
+    const primerNino = await prisma.tm_ninos.findFirst({
+      where: { tm_repre_ninos: { some: { rep_cod: repre.rep_cod } } }
+    });
+    let instCodi = data.ins_codi || primerNino?.ins_codi;
     if (!instCodi) {
       const inst = await prisma.tm_insti.findFirst();
       instCodi = inst ? inst.ins_codi : 'I001';
@@ -37,11 +39,12 @@ class NinosService {
       }
     });
 
-    // Vincular al representante actual (si no lo vinculamos en el registro inicial)
-    // Asumiremos que el repre.nin_codi ya lo asocia, o podemos actualizarlo
-    await prisma.tm_repre.update({
-      where: { rep_cod: repre.rep_cod },
-      data: { nin_codi: nuevoNino.nin_codi }
+    // Vincular al representante actual mediante la tabla pivote N:M
+    await prisma.tm_repre_ninos.create({
+      data: {
+        rep_cod: repre.rep_cod,
+        nin_codi: nuevoNino.nin_codi
+      }
     });
 
     return nuevoNino;
@@ -51,9 +54,9 @@ class NinosService {
     if (rol_codi === 'ROL_REP') {
       const repre = await prisma.tm_repre.findUnique({
         where: { usu_codi },
-        include: { tm_ninos: true }
+        include: { tm_repre_ninos: { include: { tm_ninos: true } } }
       });
-      return repre?.tm_ninos ? [repre.tm_ninos] : [];
+      return repre?.tm_repre_ninos.map(rn => rn.tm_ninos) || [];
     }
     
     if (rol_codi === 'ROL_ESP') {
@@ -108,18 +111,30 @@ class NinosService {
           where: { usu_codi: user.usu_codi }
         });
         if (existingRep) {
-          // Delete assignments associated with the old child
-          await tx.tc_asign.deleteMany({
-            where: { nin_codi: existingRep.nin_codi }
+          // Obtener los niños vinculados al representante
+          const ninosVinculados = await tx.tm_repre_ninos.findMany({
+            where: { rep_cod: existingRep.rep_cod }
           });
-          // Delete representative
+          // Eliminar asignaciones asociadas a esos niños
+          for (const vinculo of ninosVinculados) {
+            await tx.tc_asign.deleteMany({
+              where: { nin_codi: vinculo.nin_codi }
+            });
+          }
+          // Eliminar vínculos
+          await tx.tm_repre_ninos.deleteMany({
+            where: { rep_cod: existingRep.rep_cod }
+          });
+          // Eliminar representante
           await tx.tm_repre.delete({
             where: { rep_cod: existingRep.rep_cod }
           });
-          // Delete child
-          await tx.tm_ninos.delete({
-            where: { nin_codi: existingRep.nin_codi }
-          });
+          // Eliminar niños
+          for (const vinculo of ninosVinculados) {
+            await tx.tm_ninos.delete({
+              where: { nin_codi: vinculo.nin_codi }
+            });
+          }
         }
         
         user = await tx.tm_usuar.update({
@@ -175,9 +190,16 @@ class NinosService {
           usu_codi: user.usu_codi,
           rep_nomb: data.rep_nomb,
           rep_apel: data.rep_apel,
-          nin_codi: nino.nin_codi,
           rep_rela: data.rep_rela,
           rep_telf: data.rep_telf
+        }
+      });
+
+      // 4b. Vincular el representante al niño (relación N:M)
+      await tx.tm_repre_ninos.create({
+        data: {
+          rep_cod: repre.rep_cod,
+          nin_codi: nino.nin_codi
         }
       });
 
@@ -257,14 +279,18 @@ class NinosService {
     const repre = await prisma.tm_repre.findUnique({
       where: { usu_codi },
       include: {
-        tm_ninos: {
+        tm_repre_ninos: {
           include: {
-            tc_asign: {
-              where: { asi_stdo: 'Activo' },
+            tm_ninos: {
               include: {
-                tm_espec: {
+                tc_asign: {
+                  where: { asi_stdo: 'Activo' },
                   include: {
-                    tm_especi: true
+                    tm_espec: {
+                      include: {
+                        tm_especi: true
+                      }
+                    }
                   }
                 }
               }
@@ -278,7 +304,7 @@ class NinosService {
       throw new Error('Representante no encontrado');
     }
 
-    const nino = repre.tm_ninos;
+    const nino = repre.tm_repre_ninos[0]?.tm_ninos;
     if (!nino) {
       return null;
     }
@@ -310,17 +336,23 @@ class NinosService {
     };
   }
 
-  async getBitacoras(usu_codi) {
+  async getBitacoras(usu_codi, nin_codi) {
     const repre = await prisma.tm_repre.findUnique({
-      where: { usu_codi }
+      where: { usu_codi },
+      include: { tm_repre_ninos: true }
     });
 
     if (!repre) {
       throw new Error('Representante no encontrado');
     }
 
+    const targetNin = nin_codi || repre.tm_repre_ninos[0]?.nin_codi;
+    if (!targetNin) {
+      return [];
+    }
+
     return await prisma.tr_bitac.findMany({
-      where: { nin_codi: repre.nin_codi },
+      where: { nin_codi: targetNin },
       orderBy: { bit_fech: 'desc' }
     });
   }
@@ -334,11 +366,17 @@ class NinosService {
 
   async crearBitacora(usu_codi, data) {
     const repre = await prisma.tm_repre.findUnique({
-      where: { usu_codi }
+      where: { usu_codi },
+      include: { tm_repre_ninos: true }
     });
 
     if (!repre) {
       throw new Error('Representante no encontrado');
+    }
+
+    const targetNin = data.nin_codi || repre.tm_repre_ninos[0]?.nin_codi;
+    if (!targetNin) {
+      throw new Error('Representante sin niños vinculados');
     }
 
     // Funciones helper seguras para validación
@@ -363,7 +401,7 @@ class NinosService {
     return await prisma.tr_bitac.create({
       data: {
         bit_codi: bit_codi.substring(0, 10),
-        nin_codi: repre.nin_codi,
+        nin_codi: targetNin,
         bit_fech: dateVal,
         bit_suen: parseNumber(data.sleepHours) || 0,
         bit_cali: data.sleepQuality || 'Normal',

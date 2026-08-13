@@ -104,7 +104,7 @@ model tm_ninos {
   tc_sensi_rel tc_sensi? @relation("ninos_to_sensi", fields: [sen_codi], references: [sen_codi])
   tm_insti     tm_insti  @relation(fields: [ins_codi], references: [ins_codi])
 
-  tm_repre tm_repre[]
+  tm_repre_ninos tm_repre_ninos[]
   tc_sensi tc_sensi[] @relation("sensi_to_ninos")
   th_perfi th_perfi[]
   tm_dispo tm_dispo[]
@@ -124,13 +124,22 @@ model tm_repre {
   usu_codi String @unique @db.VarChar(10)
   rep_nomb String @db.VarChar(50)
   rep_apel String @db.VarChar(50)
-  nin_codi String @db.VarChar(10)
   rep_rela String @db.VarChar(20)
   rep_telf String @db.VarChar(15)
 
-  tm_usuar tm_usuar @relation(fields: [usu_codi], references: [usu_codi])
+  tm_usuar        tm_usuar          @relation(fields: [usu_codi], references: [usu_codi])
+  tm_repre_ninos  tm_repre_ninos[]
+  tm_conse        tm_conse[]
+}
+
+model tm_repre_ninos {
+  rep_cod  String   @db.VarChar(10)
+  nin_codi String   @db.VarChar(10)
+
+  tm_repre tm_repre @relation(fields: [rep_cod], references: [rep_cod])
   tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
-  tm_conse tm_conse[]
+
+  @@id([rep_cod, nin_codi])
 }
 
 model tc_sensi {

@@ -22,7 +22,7 @@ class MonitoreoService {
       orderBy: { ses_inic: 'desc' },
       include: { 
         tm_ninos: { 
-          include: { tm_repre: true } 
+          include: { tm_repre_ninos: { include: { tm_repre: true } } } 
         } 
       }
     });
@@ -33,7 +33,7 @@ class MonitoreoService {
         orderBy: { ses_inic: 'desc' },
         include: { 
           tm_ninos: { 
-            include: { tm_repre: true } 
+            include: { tm_repre_ninos: { include: { tm_repre: true } } } 
           } 
         }
       });
@@ -103,7 +103,7 @@ class MonitoreoService {
       where: { ses_codi: data.ses_codi },
       include: { 
         tm_ninos: { 
-          include: { tm_repre: true } 
+          include: { tm_repre_ninos: { include: { tm_repre: true } } } 
         } 
       }
     });
@@ -194,7 +194,7 @@ class MonitoreoService {
       // Si EmailJS no está configurado, se omite con aviso en vez de fallar la telemetría.
       if (emailService.isConfigured()) {
         try {
-          const representante = sesion.tm_ninos.tm_repre[0];
+          const representante = sesion.tm_ninos.tm_repre_ninos[0]?.tm_repre;
           if (representante && representante.usu_codi) {
             const userRep = await prisma.tm_usuar.findUnique({ where: { usu_codi: representante.usu_codi } });
             if (userRep && userRep.usu_crro) {

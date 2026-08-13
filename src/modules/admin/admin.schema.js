@@ -178,6 +178,16 @@ const toggleEspecialidadSchema = z.object({
   body: z.object({ activo: z.boolean() })
 });
 
+const updateRepresentanteSchema = z.object({
+  params: z.object({ usu_codi: z.string().min(1) }),
+  body: z.object({
+    rep_nomb: z.string().min(2).max(50).optional(),
+    rep_apel: z.string().min(2).max(50).optional(),
+    rep_telf: z.string().max(15).optional(),
+    rep_rela: z.string().max(20).optional()
+  })
+});
+
 module.exports = {
   createEspecialistaSchema,
   updateEspecialistaSchema,
@@ -189,5 +199,6 @@ module.exports = {
   toggleInstitucionSchema,
   createEspecialidadSchema,
   updateEspecialidadSchema,
-  toggleEspecialidadSchema
+  toggleEspecialidadSchema,
+  updateRepresentanteSchema
 };

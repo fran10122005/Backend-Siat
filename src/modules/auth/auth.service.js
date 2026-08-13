@@ -113,9 +113,16 @@ class AuthService {
           usu_codi: user.usu_codi,
           rep_nomb: data.rep_nomb,
           rep_apel: data.rep_apel,
-          nin_codi: nino.nin_codi,
           rep_rela: data.rep_rela || 'Familiar',
           rep_telf: data.rep_telf || 'No especificado'
+        }
+      });
+
+      // Vincular el representante al niño (relación N:M)
+      await tx.tm_repre_ninos.create({
+        data: {
+          rep_cod: repCod,
+          nin_codi: ninCodi
         }
       });
 
@@ -219,7 +226,7 @@ class AuthService {
 
     const frontendUrl = env.FRONTEND_URL || 'http://localhost:5173';
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
-    const name = usuario.tm_repre?.[0]?.rep_nomb || usuario.tm_espec?.esp_nomb || 'Usuario';
+    const name = usuario.tm_repre?.rep_nomb || usuario.tm_espec?.esp_nomb || 'Usuario';
 
     const emailService = require('../../services/email.service');
     await emailService.sendEmail({
@@ -269,7 +276,7 @@ class AuthService {
         include: {
           tm_repre: {
             include: {
-              tm_ninos: true
+              tm_repre_ninos: { include: { tm_ninos: true } }
             }
           }
         }
@@ -280,7 +287,7 @@ class AuthService {
       }
 
       const repre = usuario.tm_repre;
-      const child = repre?.tm_ninos;
+      const child = repre?.tm_repre_ninos?.[0]?.tm_ninos;
 
       return {
         usu_crro: usuario.usu_crro,

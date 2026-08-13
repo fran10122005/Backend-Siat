@@ -48,7 +48,7 @@ class AdminService {
   async listNinos() {
     return await prisma.tm_ninos.findMany({
       include: {
-        tm_repre: true
+        tm_repre_ninos: { include: { tm_repre: true } }
       }
     });
   }
@@ -336,17 +336,21 @@ class AdminService {
             rep_cod: true,
             rep_nomb: true,
             rep_apel: true,
-            nin_codi: true,
             rep_rela: true,
             rep_telf: true,
-            tm_ninos: {
+            tm_repre_ninos: {
               select: {
                 nin_codi: true,
-                nin_nomb: true,
-                nin_apel: true,
-                nin_fnac: true,
-                nin_gner: true,
-                nin_nivd: true,
+                tm_ninos: {
+                  select: {
+                    nin_codi: true,
+                    nin_nomb: true,
+                    nin_apel: true,
+                    nin_fnac: true,
+                    nin_gner: true,
+                    nin_nivd: true,
+                  },
+                },
               },
             },
           },
@@ -390,6 +394,21 @@ class AdminService {
     const especialidades = await prisma.tm_especi.findMany({ orderBy: { esc_nomb: 'asc' } });
     const instituciones = await prisma.tm_insti.findMany({ where: { ins_estd: true } });
     return { especialidades, instituciones };
+  }
+
+  async updateRepresentante(usuCodi, data) {
+    const repre = await prisma.tm_repre.findUnique({ where: { usu_codi: usuCodi } });
+    if (!repre) throw new AppError('Representante no encontrado', 404);
+
+    return prisma.tm_repre.update({
+      where: { rep_cod: repre.rep_cod },
+      data: {
+        rep_nomb: data.rep_nomb !== undefined ? data.rep_nomb : undefined,
+        rep_apel: data.rep_apel !== undefined ? data.rep_apel : undefined,
+        rep_telf: data.rep_telf !== undefined ? data.rep_telf : undefined,
+        rep_rela: data.rep_rela !== undefined ? data.rep_rela : undefined
+      }
+    });
   }
 }
 

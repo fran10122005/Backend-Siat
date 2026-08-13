@@ -6,7 +6,8 @@ const solicitarCita = catchAsync(async (req, res) => {
   const { nin_codi, esp_codi, cit_fech, cit_hora, cit_tipo, cit_nota } = req.body;
   
   const repre = await prisma.tm_repre.findUnique({
-    where: { usu_codi: req.user.usu_codi }
+    where: { usu_codi: req.user.usu_codi },
+    include: { tm_repre_ninos: true }
   });
 
   if (!repre) {
@@ -17,10 +18,22 @@ const solicitarCita = catchAsync(async (req, res) => {
     return res.status(400).json({ error: 'Debe seleccionar un especialista para la cita.' });
   }
 
+  // Resolver el niño: si no se envía nin_codi, usar el primero vinculado
+  const targetNin = nin_codi || repre.tm_repre_ninos[0]?.nin_codi;
+  if (!targetNin) {
+    return res.status(400).json({ error: 'El representante no tiene niños vinculados.' });
+  }
+
+  // Verificar que el niño pertenezca al representante
+  const vinculado = repre.tm_repre_ninos.some(rn => rn.nin_codi === targetNin);
+  if (!vinculado) {
+    return res.status(403).json({ error: 'No estás vinculado a este niño.' });
+  }
+
   // Verificar que la asignación exista
   const asignacion = await prisma.tc_asign.findFirst({
     where: { 
-      nin_codi: nin_codi || repre.nin_codi, 
+      nin_codi: targetNin, 
       esp_codi: esp_codi
     }
   });
@@ -34,7 +47,7 @@ const solicitarCita = catchAsync(async (req, res) => {
   const cita = await prisma.tr_citas.create({
     data: {
       cit_codi,
-      nin_codi: nin_codi || repre.nin_codi,
+      nin_codi: targetNin,
       esp_codi: esp_codi,
       cit_fech: new Date(cit_fech),
       cit_hora: cit_hora,
@@ -97,16 +110,22 @@ const cambiarEstadoCita = catchAsync(async (req, res) => {
 
 const obtenerEspecialistasAsignados = catchAsync(async (req, res) => {
   const repre = await prisma.tm_repre.findUnique({
-    where: { usu_codi: req.user.usu_codi }
+    where: { usu_codi: req.user.usu_codi },
+    include: { tm_repre_ninos: true }
   });
 
   if (!repre) {
     return res.status(404).json({ error: 'Representante no encontrado' });
   }
 
+  const ninos = repre.tm_repre_ninos.map(rn => rn.nin_codi);
+  if (ninos.length === 0) {
+    return res.status(200).json({ status: 'ok', data: [] });
+  }
+
   const asignaciones = await prisma.tc_asign.findMany({
     where: {
-      nin_codi: repre.nin_codi
+      nin_codi: { in: ninos }
     },
     include: {
       tm_espec: true

@@ -9,17 +9,25 @@ class ConsentimientoService {
     // Si el cliente no envía nin_codi, derivarlo del representante autenticado
     let targetNin = nin_codi;
     if (!targetNin) {
-      const rep = await prisma.tm_repre.findFirst({ where: { rep_cod } });
+      const rep = await prisma.tm_repre.findFirst({
+        where: { rep_cod },
+        include: { tm_repre_ninos: true }
+      });
       if (!rep) {
         const error = new Error('No se encontró el representante');
         error.status = 403;
         throw error;
       }
-      targetNin = rep.nin_codi;
+      targetNin = rep.tm_repre_ninos[0]?.nin_codi;
+      if (!targetNin) {
+        const error = new Error('El representante no tiene niños vinculados');
+        error.status = 403;
+        throw error;
+      }
     }
 
     // Verificar que el niño pertenezca al representante
-    const vinculado = await prisma.tm_repre.findFirst({
+    const vinculado = await prisma.tm_repre_ninos.findFirst({
       where: { rep_cod, nin_codi: targetNin }
     });
 

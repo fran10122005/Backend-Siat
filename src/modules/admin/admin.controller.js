@@ -147,6 +147,13 @@ const resetUserPassword = catchAsync(async (req, res) => {
   res.json({ success: true, data: result });
 });
 
+const updateRepresentante = catchAsync(async (req, res) => {
+  const { usu_codi } = req.params;
+  const result = await adminService.updateRepresentante(usu_codi, req.body);
+  await adminService.logAudit(req.user.usu_codi, 'INFO', `Datos del representante ${usu_codi} actualizados`, req.ip);
+  res.json({ success: true, data: result });
+});
+
 const getAuditoria = catchAsync(async (req, res) => {
   const logs = await adminService.listAuditoria();
   res.status(200).json({ data: logs });
@@ -171,5 +178,6 @@ module.exports = {
   listUsers,
   toggleUser,
   resetUserPassword,
+  updateRepresentante,
   getAuditoria
 };

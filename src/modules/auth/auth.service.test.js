@@ -16,6 +16,7 @@ const mockPrisma = {
   tm_insti: { findFirst: jest.fn(), create: jest.fn() },
   tm_ninos: { create: jest.fn() },
   tm_repre: { create: jest.fn(), update: jest.fn() },
+  tm_repre_ninos: { create: jest.fn() },
   tm_espec: { update: jest.fn(), create: jest.fn() },
   tm_especi: { findFirst: jest.fn(), create: jest.fn() },
   tm_admin: { update: jest.fn() },

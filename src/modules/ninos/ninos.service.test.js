@@ -1,7 +1,8 @@
 const mockPrisma = {
-  tm_repre: { findUnique: jest.fn(), update: jest.fn() },
+  tm_repre: { findUnique: jest.fn() },
   tm_insti: { findFirst: jest.fn() },
-  tm_ninos: { create: jest.fn() }
+  tm_ninos: { create: jest.fn(), findFirst: jest.fn() },
+  tm_repre_ninos: { create: jest.fn() }
 };
 
 jest.mock('../../config/db', () => mockPrisma);
@@ -16,10 +17,11 @@ describe('NinosService.crearNinoParaRepresentante', () => {
     await expect(ninosService.crearNinoParaRepresentante('U1', {})).rejects.toThrow('no está registrado como representante');
   });
 
-  it('crea un nuevo niño y vincula al representante', async () => {
+  it('crea un nuevo niño y lo vincula al representante vía la tabla pivote N:M', async () => {
     mockPrisma.tm_repre.findUnique.mockResolvedValue({
-      rep_cod: 'R1', nin_codi: 'N0', tm_ninos: { ins_codi: 'I001' }
+      rep_cod: 'R1', usu_codi: 'U1'
     });
+    mockPrisma.tm_ninos.findFirst.mockResolvedValue({ ins_codi: 'I001' });
     mockPrisma.tm_ninos.create.mockImplementation(async (args) => args.data);
 
     const result = await ninosService.crearNinoParaRepresentante('U1', {
@@ -30,9 +32,8 @@ describe('NinosService.crearNinoParaRepresentante', () => {
     expect(mockPrisma.tm_ninos.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ ins_codi: 'I001', nin_nomb: 'Leo' })
     }));
-    expect(mockPrisma.tm_repre.update).toHaveBeenCalledWith(expect.objectContaining({
-      where: { rep_cod: 'R1' },
-      data: { nin_codi: 'N999999999' }
+    expect(mockPrisma.tm_repre_ninos.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: { rep_cod: 'R1', nin_codi: 'N999999999' }
     }));
     expect(result.nin_codi).toBe('N999999999');
   });
