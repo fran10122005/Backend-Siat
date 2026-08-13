@@ -326,7 +326,26 @@ class AdminService {
         rol_codi: true,
         tm_roles: { select: { rol_nomb: true } },
         tm_espec: { select: { esp_nomb: true, esp_apel: true } },
-        tm_repre: { select: { rep_nomb: true, rep_apel: true } },
+        tm_repre: {
+          select: {
+            rep_cod: true,
+            rep_nomb: true,
+            rep_apel: true,
+            nin_codi: true,
+            rep_rela: true,
+            rep_telf: true,
+            tm_ninos: {
+              select: {
+                nin_codi: true,
+                nin_nomb: true,
+                nin_apel: true,
+                nin_fnac: true,
+                nin_gner: true,
+                nin_nivd: true,
+              },
+            },
+          },
+        },
         tm_admin: { select: { adm_nomb: true, adm_apel: true } }
       },
       orderBy: { usu_crea: 'desc' }
