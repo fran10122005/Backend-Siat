@@ -30,10 +30,11 @@ const inviteRepresentativeSchema = z.object({
     nin_fnac: z.string(),
     nin_gner: z.enum(['M', 'F']),
     nin_nivd: z.string().max(20),
-    rep_nomb: z.string().max(50),
-    rep_apel: z.string().max(50),
-    rep_rela: z.string().min(2).max(20),
-    rep_telf: z.string().min(7).max(15),
+      rep_nomb: z.string().max(50),
+      rep_apel: z.string().max(50),
+      rep_rela: z.string().min(2).max(20),
+      rep_cedu: z.string().regex(/^\d{6,8}$/, 'La cédula debe tener entre 6 y 8 dígitos'),
+      rep_telf: z.string().min(7).max(15),
     usu_crro: z.string().email('Debe ser un correo electrónico válido'),
     sen_tipo: z.string().max(30).optional(),
     sen_nvli: z.string().max(20).optional(),
@@ -42,7 +43,7 @@ const inviteRepresentativeSchema = z.object({
 
 const buscarRepresentanteSchema = z.object({
   query: z.object({
-    correo: z.string().email('Debe ser un correo electrónico válido')
+    cedula: z.string().regex(/^\d{6,8}$/, 'La cédula debe tener entre 6 y 8 dígitos')
   })
 });
 

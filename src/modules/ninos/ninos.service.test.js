@@ -1,5 +1,5 @@
 const mockPrisma = {
-  tm_repre: { findUnique: jest.fn() },
+  tm_repre: { findUnique: jest.fn(), findFirst: jest.fn() },
   tm_insti: { findFirst: jest.fn() },
   tm_ninos: { create: jest.fn(), findFirst: jest.fn() },
   tm_repre_ninos: { create: jest.fn() },
@@ -40,40 +40,44 @@ describe('NinosService.crearNinoParaRepresentante', () => {
   });
 });
 
-describe('NinosService.buscarRepresentantePorCorreo', () => {
+describe('NinosService.buscarRepresentantePorCedula', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('retorna la info del representante activo con su cantidad de niños', async () => {
-    mockPrisma.tm_usuar.findFirst.mockResolvedValue({ usu_codi: 'U1', usu_estd: true });
-    mockPrisma.tm_repre.findUnique.mockResolvedValue({
+    mockPrisma.tm_repre.findFirst.mockResolvedValue({
       rep_nomb: 'María', rep_apel: 'Rodríguez', rep_rela: 'Madre',
-      rep_telf: '+58 424 1234567', _count: { tm_repre_ninos: 2 }
+      rep_telf: '+58 424 1234567', rep_cedu: '12345678',
+      tm_usuar: { usu_crro: 'maria@gmail.com' },
+      _count: { tm_repre_ninos: 2 }
     });
 
-    const result = await ninosService.buscarRepresentantePorCorreo('maria@gmail.com');
+    const result = await ninosService.buscarRepresentantePorCedula('12345678');
 
-    expect(mockPrisma.tm_usuar.findFirst).toHaveBeenCalledWith({ where: { usu_crro: 'maria@gmail.com' } });
-    expect(mockPrisma.tm_repre.findUnique).toHaveBeenCalledWith({
-      where: { usu_codi: 'U1' },
-      include: { _count: { select: { tm_repre_ninos: true } } }
+    expect(mockPrisma.tm_repre.findFirst).toHaveBeenCalledWith({
+      where: {
+        rep_cedu: '12345678',
+        tm_usuar: { is: { usu_estd: true } }
+      },
+      include: {
+        tm_usuar: true,
+        _count: { select: { tm_repre_ninos: true } }
+      }
     });
     expect(result).toEqual({
       encontrado: true, rep_nomb: 'María', rep_apel: 'Rodríguez',
-      rep_rela: 'Madre', rep_telf: '+58 424 1234567', ninos: 2
+      rep_rela: 'Madre', rep_telf: '+58 424 1234567', rep_cedu: '12345678',
+      usu_crro: 'maria@gmail.com', ninos: 2
     });
   });
 
-  it('retorna null si el usuario no existe o está inactivo', async () => {
-    mockPrisma.tm_usuar.findFirst.mockResolvedValue(null);
-    expect(await ninosService.buscarRepresentantePorCorreo('nadie@correo.com')).toBeNull();
-
-    mockPrisma.tm_usuar.findFirst.mockResolvedValue({ usu_codi: 'U1', usu_estd: false });
-    expect(await ninosService.buscarRepresentantePorCorreo('inactivo@correo.com')).toBeNull();
-    expect(mockPrisma.tm_repre.findUnique).not.toHaveBeenCalled();
+  it('retorna null si no hay representante con esa cédula', async () => {
+    mockPrisma.tm_repre.findFirst.mockResolvedValue(null);
+    expect(await ninosService.buscarRepresentantePorCedula('87654321')).toBeNull();
+    expect(mockPrisma.tm_repre.findFirst).toHaveBeenCalled();
   });
 
-  it('retorna null si el correo está vacío', async () => {
-    expect(await ninosService.buscarRepresentantePorCorreo('')).toBeNull();
-    expect(mockPrisma.tm_usuar.findFirst).not.toHaveBeenCalled();
+  it('retorna null si la cédula está vacía', async () => {
+    expect(await ninosService.buscarRepresentantePorCedula('')).toBeNull();
+    expect(mockPrisma.tm_repre.findFirst).not.toHaveBeenCalled();
   });
 });

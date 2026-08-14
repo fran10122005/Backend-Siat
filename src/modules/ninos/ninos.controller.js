@@ -26,7 +26,7 @@ const inviteRepresentative = catchAsync(async (req, res) => {
 });
 
 const buscarRepresentante = catchAsync(async (req, res) => {
-  const result = await ninosService.buscarRepresentantePorCorreo(req.query.correo);
+  const result = await ninosService.buscarRepresentantePorCedula(req.query.cedula);
   res.status(200).json({ data: result || { encontrado: false } });
 });
 

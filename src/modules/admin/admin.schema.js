@@ -144,6 +144,7 @@ const createInstitucionSchema = z.object({
 const updateInstitucionSchema = z.object({
   params: z.object({ ins_codi: z.string().min(1) }),
   body: z.object({
+    ins_codi: z.string().min(1, 'El RIF es requerido').max(11).optional(),
     ins_nomb: z.string().min(2).max(100).optional(),
     ins_dire: z.string().min(5).optional(),
     ins_telf: z.string().min(5).max(15).optional(),

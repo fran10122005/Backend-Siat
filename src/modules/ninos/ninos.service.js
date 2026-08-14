@@ -95,15 +95,18 @@ class NinosService {
     return umbral;
   }
 
-  async buscarRepresentantePorCorreo(correo) {
-    if (!correo) return null;
+  async buscarRepresentantePorCedula(cedula) {
+    if (!cedula) return null;
 
-    const user = await prisma.tm_usuar.findFirst({ where: { usu_crro: correo } });
-    if (!user || !user.usu_estd) return null;
-
-    const repre = await prisma.tm_repre.findUnique({
-      where: { usu_codi: user.usu_codi },
-      include: { _count: { select: { tm_repre_ninos: true } } }
+    const repre = await prisma.tm_repre.findFirst({
+      where: {
+        rep_cedu: cedula,
+        tm_usuar: { is: { usu_estd: true } }
+      },
+      include: {
+        tm_usuar: true,
+        _count: { select: { tm_repre_ninos: true } }
+      }
     });
     if (!repre) return null;
 
@@ -113,6 +116,8 @@ class NinosService {
       rep_apel: repre.rep_apel,
       rep_rela: repre.rep_rela,
       rep_telf: repre.rep_telf,
+      rep_cedu: repre.rep_cedu,
+      usu_crro: repre.tm_usuar.usu_crro,
       ninos: repre._count.tm_repre_ninos
     };
   }
@@ -218,6 +223,7 @@ class NinosService {
           data: {
             rep_cod: generateId('R'),
             usu_codi: user.usu_codi,
+            rep_cedu: data.rep_cedu,
             rep_nomb: data.rep_nomb,
             rep_apel: data.rep_apel,
             rep_rela: data.rep_rela,

@@ -272,9 +272,20 @@ class AdminService {
     const existing = await prisma.tm_insti.findUnique({ where: { ins_codi: targetId } });
     if (!existing) throw new AppError('Institución no encontrada', 404);
 
+    // El RIF es la PK; si cambia, la BD lo propaga en cascada a las tablas que lo referencian
+    const newCodi = data.ins_codi && data.ins_codi.trim() && data.ins_codi !== targetId
+      ? data.ins_codi.trim()
+      : undefined;
+
+    if (newCodi) {
+      const clash = await prisma.tm_insti.findUnique({ where: { ins_codi: newCodi } });
+      if (clash) throw new AppError('Ya existe una institución con ese RIF', 409);
+    }
+
     return prisma.tm_insti.update({
       where: { ins_codi: targetId },
       data: {
+        ...(newCodi ? { ins_codi: newCodi } : {}),
         ins_nomb: data.ins_nomb,
         ins_dire: data.ins_dire,
         ins_telf: data.ins_telf,
