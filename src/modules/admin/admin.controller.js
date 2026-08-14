@@ -104,7 +104,7 @@ const getCatalogos = catchAsync(async (req, res) => {
 });
 
 const updateInstitucion = catchAsync(async (req, res) => {
-  const result = await adminService.updateInstitucion('I001', req.body);
+  const result = await adminService.updateInstitucion(req.params.ins_codi, req.body);
   await adminService.logAudit(req.user.usu_codi, 'INFO', `Actualización de datos institucionales`, req.ip);
   res.json({ success: true, data: result });
 });

@@ -271,14 +271,16 @@ class AdminService {
     const targetId = id || 'I001';
     const existing = await prisma.tm_insti.findUnique({ where: { ins_codi: targetId } });
     if (!existing) throw new AppError('Institución no encontrada', 404);
-    
+
     return prisma.tm_insti.update({
       where: { ins_codi: targetId },
       data: {
         ins_nomb: data.ins_nomb,
         ins_dire: data.ins_dire,
         ins_telf: data.ins_telf,
-        ins_pers: data.ins_pers
+        ins_pers: data.ins_pers,
+        ins_emai: data.ins_emai,
+        ins_web: data.ins_web
       }
     });
   }

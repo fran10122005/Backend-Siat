@@ -147,7 +147,9 @@ const updateInstitucionSchema = z.object({
     ins_nomb: z.string().min(2).max(100).optional(),
     ins_dire: z.string().min(5).optional(),
     ins_telf: z.string().min(5).max(15).optional(),
-    ins_pers: z.string().max(50).optional()
+    ins_pers: z.string().max(50).optional(),
+    ins_emai: z.string().email('Correo institucional inválido').max(120).optional().or(z.literal('')),
+    ins_web: z.string().max(200).optional().or(z.literal(''))
   })
 });
 
