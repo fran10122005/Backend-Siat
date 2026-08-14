@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const env = require('../../config/env');
 const { generateId } = require('../../utils/idGenerator');
+const AppError = require('../../utils/AppError');
 
 class NinosService {
   async crearNinoParaRepresentante(usu_codi, data) {
@@ -94,49 +95,74 @@ class NinosService {
     return umbral;
   }
 
+  async buscarRepresentantePorCorreo(correo) {
+    if (!correo) return null;
+
+    const user = await prisma.tm_usuar.findFirst({ where: { usu_crro: correo } });
+    if (!user || !user.usu_estd) return null;
+
+    const repre = await prisma.tm_repre.findUnique({
+      where: { usu_codi: user.usu_codi },
+      include: { _count: { select: { tm_repre_ninos: true } } }
+    });
+    if (!repre) return null;
+
+    return {
+      encontrado: true,
+      rep_nomb: repre.rep_nomb,
+      rep_apel: repre.rep_apel,
+      rep_rela: repre.rep_rela,
+      rep_telf: repre.rep_telf,
+      ninos: repre._count.tm_repre_ninos
+    };
+  }
+
   async inviteRepresentative(especCodi, data) {
     let generatedPassword = '';
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Create or retrieve inactive user
+      // 1. Buscar o crear el usuario del representante
       let user = await tx.tm_usuar.findFirst({ where: { usu_crro: data.usu_crro } });
-      generatedPassword = 'Padre' + crypto.randomBytes(3).toString('hex');
-      const hashedClve = await bcrypt.hash(generatedPassword, 10);
-      
-      if (user) {
-        if (user.usu_estd) {
-          throw new Error('El correo electrónico ya está registrado y activo');
+      let repre = null;
+      let reutilizado = false;
+
+      if (user && user.usu_estd) {
+        // Usuario activo: reutilizarlo si ya es representante
+        repre = await tx.tm_repre.findUnique({ where: { usu_codi: user.usu_codi } });
+        if (!repre) {
+          throw new AppError('El correo electrónico ya está registrado y activo', 409);
         }
-        // Clean up previous inactive invitation details to avoid duplicate constraints
+        reutilizado = true;
+      } else if (user) {
+        // Usuario inactivo: reactivar la invitación anterior
+        generatedPassword = 'Padre' + crypto.randomBytes(3).toString('hex');
+        const hashedClve = await bcrypt.hash(generatedPassword, 10);
+
         const existingRep = await tx.tm_repre.findUnique({
           where: { usu_codi: user.usu_codi }
         });
         if (existingRep) {
-          // Obtener los niños vinculados al representante
+          // Eliminar asignaciones asociadas a los niños del representante
           const ninosVinculados = await tx.tm_repre_ninos.findMany({
             where: { rep_cod: existingRep.rep_cod }
           });
-          // Eliminar asignaciones asociadas a esos niños
           for (const vinculo of ninosVinculados) {
             await tx.tc_asign.deleteMany({
               where: { nin_codi: vinculo.nin_codi }
             });
           }
-          // Eliminar vínculos
           await tx.tm_repre_ninos.deleteMany({
             where: { rep_cod: existingRep.rep_cod }
           });
-          // Eliminar representante
           await tx.tm_repre.delete({
             where: { rep_cod: existingRep.rep_cod }
           });
-          // Eliminar niños
           for (const vinculo of ninosVinculados) {
             await tx.tm_ninos.delete({
               where: { nin_codi: vinculo.nin_codi }
             });
           }
         }
-        
+
         user = await tx.tm_usuar.update({
           where: { usu_codi: user.usu_codi },
           data: {
@@ -145,6 +171,9 @@ class NinosService {
           }
         });
       } else {
+        // Usuario nuevo
+        generatedPassword = 'Padre' + crypto.randomBytes(3).toString('hex');
+        const hashedClve = await bcrypt.hash(generatedPassword, 10);
         user = await tx.tm_usuar.create({
           data: {
             usu_codi: generateId('U'),
@@ -183,17 +212,19 @@ class NinosService {
         }
       });
 
-      // 4. Create tm_repre
-      const repre = await tx.tm_repre.create({
-        data: {
-          rep_cod: generateId('R'),
-          usu_codi: user.usu_codi,
-          rep_nomb: data.rep_nomb,
-          rep_apel: data.rep_apel,
-          rep_rela: data.rep_rela,
-          rep_telf: data.rep_telf
-        }
-      });
+      // 4. Reutilizar o crear tm_repre
+      if (!repre) {
+        repre = await tx.tm_repre.create({
+          data: {
+            rep_cod: generateId('R'),
+            usu_codi: user.usu_codi,
+            rep_nomb: data.rep_nomb,
+            rep_apel: data.rep_apel,
+            rep_rela: data.rep_rela,
+            rep_telf: data.rep_telf
+          }
+        });
+      }
 
       // 4b. Vincular el representante al niño (relación N:M)
       await tx.tm_repre_ninos.create({
@@ -236,41 +267,50 @@ class NinosService {
         });
       }
 
-      return { user, nino, repre };
+      return { user, nino, repre, reutilizado };
     });
 
     const frontendUrl = env.FRONTEND_URL || 'http://localhost:5173';
     const loginUrl = `${frontendUrl}/login`;
 
-    // Enviar correo de invitación con credenciales
-    const emailService = require('../../services/email.service');
+    // Enviar correo de invitación únicamente si se creó cuenta nueva
     let emailSent = false;
-    try {
-      await emailService.sendEmail({
-        to: result.user.usu_crro,
-        subject: 'Invitación y Credenciales de Acceso - SIAT',
-        templateName: 'invite-representative',
-        context: {
-          nombre_padre: `${result.repre.rep_nomb} ${result.repre.rep_apel}`,
-          nombre_nino: `${result.nino.nin_nomb} ${result.nino.nin_apel}`,
-          email: result.user.usu_crro,
-          password: generatedPassword,
-          loginUrl: loginUrl
-        }
-      });
-      emailSent = true;
-    } catch (error) {
-      console.warn('⚠️ Error al enviar correo de invitación (EmailJS):', error.message);
-    }
+    if (!result.reutilizado) {
+      const emailService = require('../../services/email.service');
+      try {
+        await emailService.sendEmail({
+          to: result.user.usu_crro,
+          subject: 'Invitación y Credenciales de Acceso - SIAT',
+          templateName: 'invite-representative',
+          context: {
+            nombre_padre: `${result.repre.rep_nomb} ${result.repre.rep_apel}`,
+            nombre_nino: `${result.nino.nin_nomb} ${result.nino.nin_apel}`,
+            email: result.user.usu_crro,
+            password: generatedPassword,
+            loginUrl: loginUrl
+          }
+        });
+        emailSent = true;
+      } catch (error) {
+        console.warn('⚠️ Error al enviar correo de invitación (EmailJS):', error.message);
+      }
 
-    // Imprimir las credenciales en los logs de consola para fácil desarrollo
-    console.log(`🔗 Credenciales generadas para ${result.user.usu_crro} - Password: ${generatedPassword}`);
+      console.log(`🔗 Credenciales generadas para ${result.user.usu_crro} - Password: ${generatedPassword}`);
+    }
 
     return {
       nin_codi: result.nino.nin_codi,
       nin_nomb: result.nino.nin_nomb,
       nin_apel: result.nino.nin_apel,
-      passwordGenerada: generatedPassword,
+      reutilizado: result.reutilizado,
+      representante: result.reutilizado
+        ? {
+            rep_nomb: result.repre.rep_nomb,
+            rep_apel: result.repre.rep_apel,
+            rep_rela: result.repre.rep_rela
+          }
+        : null,
+      passwordGenerada: result.reutilizado ? null : generatedPassword,
       emailSent: emailSent
     };
   }

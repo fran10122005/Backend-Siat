@@ -15,6 +15,9 @@ router.post('/', authenticate, requireRole(['ROL_REP', 'ROL_ESP']), validateSche
 // POST /api/ninos/invite-representative
 router.post('/invite-representative', authenticate, requireRole(['ROL_ESP', 'ROL_ADM', 'ROL_DIR']), validateSchema(schemas.inviteRepresentativeSchema), ninosController.inviteRepresentative);
 
+// GET /api/ninos/representante?correo=... (Buscar representante existente por correo)
+router.get('/representante', authenticate, requireRole(['ROL_ESP', 'ROL_ADM', 'ROL_DIR']), validateSchema(schemas.buscarRepresentanteSchema), ninosController.buscarRepresentante);
+
 // POST /api/ninos/:nin_codi/umbrales
 router.post('/:nin_codi/umbrales', authenticate, validateSchema(schemas.umbralesSchema), ninosController.configurarUmbrales);
 

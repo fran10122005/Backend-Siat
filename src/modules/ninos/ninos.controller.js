@@ -25,6 +25,11 @@ const inviteRepresentative = catchAsync(async (req, res) => {
   res.status(201).json({ message: 'Invitación de representante creada exitosamente', data: result });
 });
 
+const buscarRepresentante = catchAsync(async (req, res) => {
+  const result = await ninosService.buscarRepresentantePorCorreo(req.query.correo);
+  res.status(200).json({ data: result || { encontrado: false } });
+});
+
 const obtenerExpedienteRepresentante = catchAsync(async (req, res) => {
   const { usu_codi } = req.user;
   const result = await ninosService.getMiExpediente(usu_codi);
@@ -66,6 +71,7 @@ module.exports = {
   misNinos, 
   configurarUmbrales, 
   inviteRepresentative,
+  buscarRepresentante,
   obtenerExpedienteRepresentante,
   obtenerBitacoras,
   obtenerBitacorasPorNino,

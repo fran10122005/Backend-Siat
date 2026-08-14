@@ -12,9 +12,11 @@ const { isOriginAllowed } = require('./src/middleware/cors');
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  // Heartbeat: verifica que los clientes sigan vivos y libera las conexiones muertas
+  // Heartbeat: verifica que los clientes sigan vivos y libera las conexiones muertas.
+  // pingInterval + pingTimeout = 45s. El margen amplio evita que Render o las redes
+  // móviles corten la conexión cuando el pong tarda unos segundos de más.
   pingInterval: 25000,
-  pingTimeout: 10000,
+  pingTimeout: 20000,
   cors: {
     origin: (origin, callback) => {
       if (isOriginAllowed(origin)) {
@@ -28,6 +30,40 @@ const io = new Server(server, {
 });
 
 app.set('io', io);
+
+// ── Control de sockets por usuario ─────────────────────────────────────────
+// Mantiene UN SOLO socket activo por usuario. Cuando un usuario reconecta, se
+// cierran sus sockets anteriores (huérfanos) para evitar que queden suscritos
+// a las mismas salas y dupliquen eventos.
+const socketsByUser = new Map(); // usu_codi → Set<socketId>
+
+function registerSocket(socket) {
+  const usuCodi = socket.user.usu_codi;
+  const current = socketsByUser.get(usuCodi) || new Set();
+  current.add(socket.id);
+  socketsByUser.set(usuCodi, current);
+}
+
+function unregisterSocket(socket) {
+  const usuCodi = socket.user.usu_codi;
+  const current = socketsByUser.get(usuCodi);
+  if (!current) return;
+  current.delete(socket.id);
+  if (current.size === 0) socketsByUser.delete(usuCodi);
+}
+
+function closePreviousSockets(usuCodi, keepId) {
+  const current = socketsByUser.get(usuCodi);
+  if (!current) return;
+  for (const socketId of current) {
+    if (socketId === keepId) continue;
+    const old = io.sockets.sockets.get(socketId);
+    if (old) {
+      console.log(`🧹 Cerrando socket huérfano ${socketId} del usuario ${usuCodi}`);
+      old.disconnect(true);
+    }
+  }
+}
 
 // Middleware de Socket.io para verificar el token JWT
 io.use((socket, next) => {
@@ -109,7 +145,12 @@ async function syncRooms(socket) {
 io.on('connection', async (socket) => {
   console.log(`🔌 Cliente conectado: ${socket.id} (Usuario: ${socket.user.usu_codi}, Rol: ${socket.user.rol_codi})`);
 
-  // Unión inicial de salas
+  // Reemplaza sockets anteriores del mismo usuario (evita suscripciones duplicadas)
+  registerSocket(socket);
+  closePreviousSockets(socket.user.usu_codi, socket.id);
+
+  // Unión inicial de salas. Se ejecuta UNA sola vez por conexión; el cliente no
+  // debe re-enviar resync_rooms automáticamente en cada 'connect' (evita duplicar).
   await syncRooms(socket);
 
   // Reescucha dinámica: el cliente puede volver a suscribirse (útil tras reconexión)
@@ -136,6 +177,7 @@ io.on('connection', async (socket) => {
   });
 
   socket.on('disconnect', () => {
+    unregisterSocket(socket);
     console.log(`🔌 Cliente desconectado: ${socket.id}`);
   });
 });

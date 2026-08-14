@@ -40,4 +40,10 @@ const inviteRepresentativeSchema = z.object({
   })
 });
 
-module.exports = { registerNinoSchema, umbralesSchema, inviteRepresentativeSchema };
+const buscarRepresentanteSchema = z.object({
+  query: z.object({
+    correo: z.string().email('Debe ser un correo electrónico válido')
+  })
+});
+
+module.exports = { registerNinoSchema, umbralesSchema, inviteRepresentativeSchema, buscarRepresentanteSchema };

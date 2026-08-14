@@ -2,7 +2,8 @@ const mockPrisma = {
   tm_repre: { findUnique: jest.fn() },
   tm_insti: { findFirst: jest.fn() },
   tm_ninos: { create: jest.fn(), findFirst: jest.fn() },
-  tm_repre_ninos: { create: jest.fn() }
+  tm_repre_ninos: { create: jest.fn() },
+  tm_usuar: { findFirst: jest.fn() }
 };
 
 jest.mock('../../config/db', () => mockPrisma);
@@ -36,5 +37,43 @@ describe('NinosService.crearNinoParaRepresentante', () => {
       data: { rep_cod: 'R1', nin_codi: 'N999999999' }
     }));
     expect(result.nin_codi).toBe('N999999999');
+  });
+});
+
+describe('NinosService.buscarRepresentantePorCorreo', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('retorna la info del representante activo con su cantidad de niños', async () => {
+    mockPrisma.tm_usuar.findFirst.mockResolvedValue({ usu_codi: 'U1', usu_estd: true });
+    mockPrisma.tm_repre.findUnique.mockResolvedValue({
+      rep_nomb: 'María', rep_apel: 'Rodríguez', rep_rela: 'Madre',
+      rep_telf: '+58 424 1234567', _count: { tm_repre_ninos: 2 }
+    });
+
+    const result = await ninosService.buscarRepresentantePorCorreo('maria@gmail.com');
+
+    expect(mockPrisma.tm_usuar.findFirst).toHaveBeenCalledWith({ where: { usu_crro: 'maria@gmail.com' } });
+    expect(mockPrisma.tm_repre.findUnique).toHaveBeenCalledWith({
+      where: { usu_codi: 'U1' },
+      include: { _count: { select: { tm_repre_ninos: true } } }
+    });
+    expect(result).toEqual({
+      encontrado: true, rep_nomb: 'María', rep_apel: 'Rodríguez',
+      rep_rela: 'Madre', rep_telf: '+58 424 1234567', ninos: 2
+    });
+  });
+
+  it('retorna null si el usuario no existe o está inactivo', async () => {
+    mockPrisma.tm_usuar.findFirst.mockResolvedValue(null);
+    expect(await ninosService.buscarRepresentantePorCorreo('nadie@correo.com')).toBeNull();
+
+    mockPrisma.tm_usuar.findFirst.mockResolvedValue({ usu_codi: 'U1', usu_estd: false });
+    expect(await ninosService.buscarRepresentantePorCorreo('inactivo@correo.com')).toBeNull();
+    expect(mockPrisma.tm_repre.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('retorna null si el correo está vacío', async () => {
+    expect(await ninosService.buscarRepresentantePorCorreo('')).toBeNull();
+    expect(mockPrisma.tm_usuar.findFirst).not.toHaveBeenCalled();
   });
 });
