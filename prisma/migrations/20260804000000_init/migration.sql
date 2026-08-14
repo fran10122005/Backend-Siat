@@ -257,20 +257,6 @@ CREATE TABLE "tr_estad" (
 );
 
 -- CreateTable
-CREATE TABLE "tr_citas" (
-    "cit_codi" VARCHAR(10) NOT NULL,
-    "nin_codi" VARCHAR(10) NOT NULL,
-    "esp_codi" VARCHAR(11) NOT NULL,
-    "cit_fech" DATE NOT NULL,
-    "cit_hora" VARCHAR(10) NOT NULL,
-    "cit_tipo" VARCHAR(50) NOT NULL,
-    "cit_estd" VARCHAR(20) NOT NULL,
-    "cit_nota" TEXT,
-
-    CONSTRAINT "tr_citas_pkey" PRIMARY KEY ("cit_codi")
-);
-
--- CreateTable
 CREATE TABLE "tr_alert" (
     "ale_codi" VARCHAR(10) NOT NULL,
     "ses_codi" VARCHAR(10) NOT NULL,
@@ -465,12 +451,6 @@ ALTER TABLE "tr_telem" ADD CONSTRAINT "tr_telem_con_codi_fkey" FOREIGN KEY ("con
 
 -- AddForeignKey
 ALTER TABLE "tr_estad" ADD CONSTRAINT "tr_estad_ses_codi_fkey" FOREIGN KEY ("ses_codi") REFERENCES "tr_sesio"("ses_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "tr_citas" ADD CONSTRAINT "tr_citas_nin_codi_fkey" FOREIGN KEY ("nin_codi") REFERENCES "tm_ninos"("nin_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "tr_citas" ADD CONSTRAINT "tr_citas_esp_codi_fkey" FOREIGN KEY ("esp_codi") REFERENCES "tm_espec"("esp_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "tr_alert" ADD CONSTRAINT "tr_alert_ses_codi_fkey" FOREIGN KEY ("ses_codi") REFERENCES "tr_sesio"("ses_codi") ON DELETE RESTRICT ON UPDATE CASCADE;

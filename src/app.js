@@ -44,7 +44,6 @@ const sesionesRoutes = require('./modules/sesiones/sesiones.routes');
 const monitoreoRoutes = require('./modules/monitoreo/monitoreo.routes');
 const reportesRoutes = require('./modules/reportes/reportes.routes');
 const adminRoutes = require('./modules/admin/admin.routes');
-const citasRoutes = require('./modules/citas/citas.routes');
 const metasRoutes = require('./modules/metas/metas.routes');
 const consentimientoRoutes = require('./modules/consentimiento/consentimiento.routes');
 const errorHandler = require('./middleware/errorHandler');
@@ -57,7 +56,6 @@ app.use('/api/sesiones', sesionesRoutes);
 app.use('/api/monitoreo', monitoreoRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/citas', citasRoutes);
 app.use('/api/metas', metasRoutes);
 app.use('/api/consentimiento', consentimientoRoutes);
 
