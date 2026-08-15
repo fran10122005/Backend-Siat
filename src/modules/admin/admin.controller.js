@@ -154,6 +154,14 @@ const updateRepresentante = catchAsync(async (req, res) => {
   res.json({ success: true, data: result });
 });
 
+const updateNinoFoto = catchAsync(async (req, res) => {
+  const { nin_codi } = req.params;
+  const { nin_foto } = req.body;
+  const result = await adminService.updateNinoFoto(nin_codi, nin_foto);
+  await adminService.logAudit(req.user.usu_codi, 'INFO', `Foto del paciente ${nin_codi} actualizada`, req.ip);
+  res.json({ success: true, data: result });
+});
+
 const getAuditoria = catchAsync(async (req, res) => {
   const logs = await adminService.listAuditoria();
   res.status(200).json({ data: logs });
@@ -179,5 +187,6 @@ module.exports = {
   toggleUser,
   resetUserPassword,
   updateRepresentante,
+  updateNinoFoto,
   getAuditoria
 };

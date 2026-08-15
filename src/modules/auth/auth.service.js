@@ -103,7 +103,8 @@ class AuthService {
           nin_fnac: new Date(data.nin_fnac),
           nin_gner: data.nin_gner || 'M',
           nin_nivd: 'Por evaluar', // Se evalua por especialista posteriormente
-          nin_ingr: new Date()
+          nin_ingr: new Date(),
+          nin_foto: data.nin_foto || null
         }
       });
 
@@ -439,7 +440,8 @@ class AuthService {
             rep_nomb: profileData.nomb || usuario.tm_repre.rep_nomb,
             rep_apel: profileData.apel || usuario.tm_repre.rep_apel,
             rep_telf: profileData.telf !== undefined ? profileData.telf : usuario.tm_repre.rep_telf,
-            rep_rela: profileData.rela !== undefined ? profileData.rela : usuario.tm_repre.rep_rela
+            rep_rela: profileData.rela !== undefined ? profileData.rela : usuario.tm_repre.rep_rela,
+            rep_foto: profileData.foto !== undefined ? profileData.foto : usuario.tm_repre.rep_foto
           }
         });
       } else if (usuario.rol_codi === 'ROL_ADM' && usuario.tm_admin) {
@@ -447,7 +449,8 @@ class AuthService {
           where: { usu_codi },
           data: {
             adm_nomb: profileData.nomb || usuario.tm_admin.adm_nomb,
-            adm_apel: profileData.apel || usuario.tm_admin.adm_apel
+            adm_apel: profileData.apel || usuario.tm_admin.adm_apel,
+            adm_foto: profileData.foto !== undefined ? profileData.foto : usuario.tm_admin.adm_foto
           }
         });
       }

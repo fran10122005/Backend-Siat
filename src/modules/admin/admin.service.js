@@ -343,7 +343,7 @@ class AdminService {
         usu_estd: true,
         rol_codi: true,
         tm_roles: { select: { rol_nomb: true } },
-        tm_espec: { select: { esp_nomb: true, esp_apel: true } },
+        tm_espec: { select: { esp_nomb: true, esp_apel: true, esp_foto: true } },
         tm_repre: {
           select: {
             rep_cod: true,
@@ -351,6 +351,7 @@ class AdminService {
             rep_apel: true,
             rep_rela: true,
             rep_telf: true,
+            rep_foto: true,
             tm_repre_ninos: {
               select: {
                 nin_codi: true,
@@ -362,13 +363,14 @@ class AdminService {
                     nin_fnac: true,
                     nin_gner: true,
                     nin_nivd: true,
+                    nin_foto: true,
                   },
                 },
               },
             },
           },
         },
-        tm_admin: { select: { adm_nomb: true, adm_apel: true } }
+        tm_admin: { select: { adm_nomb: true, adm_apel: true, adm_foto: true } }
       },
       orderBy: { usu_crea: 'desc' }
     });
@@ -419,8 +421,19 @@ class AdminService {
         rep_nomb: data.rep_nomb !== undefined ? data.rep_nomb : undefined,
         rep_apel: data.rep_apel !== undefined ? data.rep_apel : undefined,
         rep_telf: data.rep_telf !== undefined ? data.rep_telf : undefined,
-        rep_rela: data.rep_rela !== undefined ? data.rep_rela : undefined
+        rep_rela: data.rep_rela !== undefined ? data.rep_rela : undefined,
+        rep_foto: data.rep_foto !== undefined ? data.rep_foto : undefined
       }
+    });
+  }
+
+  async updateNinoFoto(nin_codi, foto) {
+    const nino = await prisma.tm_ninos.findUnique({ where: { nin_codi } });
+    if (!nino) throw new AppError('Paciente no encontrado', 404);
+
+    return prisma.tm_ninos.update({
+      where: { nin_codi },
+      data: { nin_foto: foto }
     });
   }
 }

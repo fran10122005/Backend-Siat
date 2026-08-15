@@ -36,7 +36,8 @@ class NinosService {
         nin_fnac: new Date(data.nin_fnac),
         nin_gner: data.nin_gner,
         nin_nivd: data.nin_nivd,
-        nin_ingr: new Date()
+        nin_ingr: new Date(),
+        nin_foto: data.nin_foto || null
       }
     });
 
@@ -213,7 +214,8 @@ class NinosService {
           nin_fnac: new Date(data.nin_fnac),
           nin_gner: data.nin_gner,
           nin_nivd: data.nin_nivd,
-          nin_ingr: new Date()
+          nin_ingr: new Date(),
+          nin_foto: data.nin_foto || null
         }
       });
 

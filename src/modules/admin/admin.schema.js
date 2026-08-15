@@ -187,7 +187,15 @@ const updateRepresentanteSchema = z.object({
     rep_nomb: z.string().min(2).max(50).optional(),
     rep_apel: z.string().min(2).max(50).optional(),
     rep_telf: z.string().max(15).optional(),
-    rep_rela: z.string().max(20).optional()
+    rep_rela: z.string().max(20).optional(),
+    rep_foto: z.string().url('URL de foto inválida').optional().nullable()
+  })
+});
+
+const updateNinoFotoSchema = z.object({
+  params: z.object({ nin_codi: z.string().min(1) }),
+  body: z.object({
+    nin_foto: z.string().url('URL de foto inválida').optional().nullable()
   })
 });
 
@@ -203,5 +211,6 @@ module.exports = {
   createEspecialidadSchema,
   updateEspecialidadSchema,
   toggleEspecialidadSchema,
-  updateRepresentanteSchema
+  updateRepresentanteSchema,
+  updateNinoFotoSchema
 };

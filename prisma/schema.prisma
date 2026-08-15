@@ -104,6 +104,7 @@ model tm_ninos {
   nin_nivd String      @db.VarChar(20)
   sen_codi String?     @db.VarChar(10)
   nin_ingr DateTime    @db.Timestamp()
+  nin_foto String?     @db.Text
 
   tc_sensi_rel tc_sensi? @relation("ninos_to_sensi", fields: [sen_codi], references: [sen_codi])
   tm_insti     tm_insti  @relation(fields: [ins_codi], references: [ins_codi])
@@ -133,6 +134,7 @@ model tm_ninos {
     rep_apel String @db.VarChar(50)
     rep_rela String @db.VarChar(20)
     rep_telf String @db.VarChar(15)
+    rep_foto String? @db.Text
 
   tm_usuar        tm_usuar          @relation(fields: [usu_codi], references: [usu_codi])
   tm_repre_ninos  tm_repre_ninos[]
@@ -428,6 +430,7 @@ model tm_admin {
   ins_codi String @db.VarChar(11)
   adm_nomb String @db.VarChar(50)
   adm_apel String @db.VarChar(50)
+  adm_foto String? @db.Text
 
   tm_usuar tm_usuar @relation(fields: [usu_codi], references: [usu_codi])
   tm_insti tm_insti @relation(fields: [ins_codi], references: [ins_codi])

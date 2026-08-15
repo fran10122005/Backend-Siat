@@ -19,7 +19,8 @@ const registerRepreSchema = z.object({
     nin_nomb: z.string().max(50),
     nin_apel: z.string().max(50),
     nin_fnac: z.string().datetime().or(z.string()), // Acepta string ISO o date
-    nin_gner: z.enum(['M', 'F']).optional()
+    nin_gner: z.enum(['M', 'F']).optional(),
+    nin_foto: z.string().url('URL de foto inválida').optional().nullable()
   })
 });
 

@@ -28,6 +28,7 @@ router.get('/auditoria', adminController.getAuditoria);
 router.patch('/users/:usu_codi/estado', adminController.toggleUser);
 router.post('/users/:usu_codi/password', adminController.resetUserPassword);
 router.put('/representantes/:usu_codi', validateSchema(adminSchemas.updateRepresentanteSchema), adminController.updateRepresentante);
+router.patch('/ninos/:nin_codi/foto', validateSchema(adminSchemas.updateNinoFotoSchema), adminController.updateNinoFoto);
 
 router.post('/especialistas', validateSchema(adminSchemas.createEspecialistaSchema), adminController.createEspecialista);
 router.put('/especialistas/:esp_codi', validateSchema(adminSchemas.updateEspecialistaSchema), adminController.updateEspecialista);

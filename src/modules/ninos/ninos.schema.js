@@ -36,6 +36,7 @@ const inviteRepresentativeSchema = z.object({
       rep_cedu: z.string().regex(/^\d{6,8}$/, 'La cédula debe tener entre 6 y 8 dígitos'),
       rep_telf: z.string().min(7).max(15),
     usu_crro: z.string().email('Debe ser un correo electrónico válido'),
+    nin_foto: z.string().url('URL de foto inválida').optional().nullable(),
     sen_tipo: z.string().max(30).optional(),
     sen_nvli: z.string().max(20).optional(),
   })
