@@ -53,10 +53,18 @@ class NinosService {
   }
 
   async getMisNinos(usu_codi, rol_codi) {
+    const ASIG_ACTIVA = { asi_stdo: 'Activo' };
+
     if (rol_codi === 'ROL_REP') {
       const repre = await prisma.tm_repre.findUnique({
         where: { usu_codi },
-        include: { tm_repre_ninos: { include: { tm_ninos: true } } }
+        include: {
+          tm_repre_ninos: {
+            include: {
+              tm_ninos: { include: { tc_asign: { where: ASIG_ACTIVA } } }
+            }
+          }
+        }
       });
       return repre?.tm_repre_ninos.map(rn => rn.tm_ninos) || [];
     }
@@ -64,19 +72,20 @@ class NinosService {
     if (rol_codi === 'ROL_ESP') {
       const espec = await prisma.tm_espec.findUnique({
         where: { usu_codi },
-        include: { tc_asign: { include: { tm_ninos: true } } }
+        include: {
+          tc_asign: {
+            where: ASIG_ACTIVA,
+            include: { tm_ninos: { include: { tc_asign: { where: ASIG_ACTIVA } } } }
+          }
+        }
       });
       return espec?.tc_asign.map(a => a.tm_ninos) || [];
     }
 
-    if (rol_codi === 'ROL_DIR') {
-      return await prisma.tm_ninos.findMany();
-    }
-    
-    if (rol_codi === 'ROL_ADM') {
-      // Como tm_admin puede no estar definido, lo omitimos si no existe
-      // o buscamos si el usuario tiene una institución asignada
-      return await prisma.tm_ninos.findMany();
+    if (rol_codi === 'ROL_DIR' || rol_codi === 'ROL_ADM') {
+      return await prisma.tm_ninos.findMany({
+        include: { tc_asign: { where: ASIG_ACTIVA } }
+      });
     }
 
     throw new Error('Rol no soportado para esta consulta');
