@@ -1,4 +1,4 @@
-﻿-- AlterTable
+-- AlterTable
 ALTER TABLE "tr_metaspei" ADD COLUMN     "met_categ" VARCHAR(50),
 ADD COLUMN     "met_crit" TEXT,
 ADD COLUMN     "met_ffin" DATE,
