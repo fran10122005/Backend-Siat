@@ -349,7 +349,9 @@ class NinosService {
                       }
                     }
                   }
-                }
+                },
+                tm_insti: true,
+                tc_sensi_rel: true
               }
             }
           }
@@ -388,8 +390,23 @@ class NinosService {
       nin_edad: `${edad} años`,
       nin_gner: nino.nin_gner,
       nin_nivd: nino.nin_nivd,
+      nin_ingr: nino.nin_ingr,
+      nin_foto: nino.nin_foto,
+      nin_diag: nino.nin_diag,
+      institucion: nino.tm_insti ? {
+        ins_codi: nino.tm_insti.ins_codi,
+        ins_nomb: nino.tm_insti.ins_nomb
+      } : null,
       especialista,
-      perfil_sensorial: 'Sensorial Mixto (Ajustado)'
+      perfil_sensorial: nino.tc_sensi_rel?.sen_tipo
+        ? (nino.tc_sensi_rel.sen_tipo === 'mixto'
+            ? 'Perfil Sensorial Mixto'
+            : nino.tc_sensi_rel.sen_tipo === 'hipo-auditiva'
+              ? 'Hipo-reactividad Auditiva'
+              : nino.tc_sensi_rel.sen_tipo === 'hiper-tactil'
+                ? 'Hiper-reactividad Táctil'
+                : nino.tc_sensi_rel.sen_tipo)
+        : 'Sensorial Mixto'
     };
   }
 
@@ -485,6 +502,22 @@ class NinosService {
         tc_umbra: {
           orderBy: { umb_ajus: 'desc' },
           take: 1
+        },
+        tm_insti: true,
+        tc_asign: {
+          where: { asi_stdo: 'Activo' },
+          include: {
+            tm_espec: {
+              include: {
+                tm_especi: true
+              }
+            }
+          }
+        },
+        tm_repre_ninos: {
+          include: {
+            tm_repre: true
+          }
         }
       }
     });
@@ -493,14 +526,48 @@ class NinosService {
       throw new Error('Niño no encontrado');
     }
 
+    // Calcular edad
+    const hoy = new Date();
+    const cumple = new Date(nino.nin_fnac);
+    let edad = hoy.getFullYear() - cumple.getFullYear();
+    const m = hoy.getMonth() - cumple.getMonth();
+    if (m < 0 || (m === 0 && hoy.getDate() < cumple.getDate())) {
+      edad--;
+    }
+
+    const especialista = nino.tc_asign[0]?.tm_espec
+      ? `Dr(a). ${nino.tc_asign[0].tm_espec.esp_nomb} ${nino.tc_asign[0].tm_espec.esp_apel}`
+      : null;
+
+    const representante = nino.tm_repre_ninos[0]?.tm_repre
+      ? {
+          rep_cod: nino.tm_repre_ninos[0].tm_repre.rep_cod,
+          rep_nomb: nino.tm_repre_ninos[0].tm_repre.rep_nomb,
+          rep_apel: nino.tm_repre_ninos[0].tm_repre.rep_apel,
+          rep_rela: nino.tm_repre_ninos[0].tm_repre.rep_rela,
+          rep_telf: nino.tm_repre_ninos[0].tm_repre.rep_telf
+        }
+      : null;
+
     return {
       nin_codi: nino.nin_codi,
       nin_nomb: nino.nin_nomb,
       nin_apel: nino.nin_apel,
       nin_fnac: nino.nin_fnac,
+      nin_edad: `${edad} años`,
       nin_gner: nino.nin_gner,
       nin_nivd: nino.nin_nivd,
       nin_ingr: nino.nin_ingr,
+      nin_foto: nino.nin_foto,
+      nin_diag: nino.nin_diag,
+      institucion: nino.tm_insti ? {
+        ins_codi: nino.tm_insti.ins_codi,
+        ins_nomb: nino.tm_insti.ins_nomb,
+        ins_dire: nino.tm_insti.ins_dire,
+        ins_telf: nino.tm_insti.ins_telf
+      } : null,
+      especialista,
+      representante,
       sensibilidad: nino.tc_sensi_rel ? {
         sen_codi: nino.tc_sensi_rel.sen_codi,
         sen_tipo: nino.tc_sensi_rel.sen_tipo,
@@ -533,7 +600,9 @@ class NinosService {
         nin_apel: data.nin_apel,
         nin_fnac: new Date(data.nin_fnac),
         nin_gner: data.nin_gner,
-        nin_nivd: data.nin_nivd
+        nin_nivd: data.nin_nivd,
+        ...(data.nin_diag !== undefined ? { nin_diag: data.nin_diag || null } : {}),
+        ...(data.nin_foto !== undefined ? { nin_foto: data.nin_foto || null } : {})
       }
     });
 
