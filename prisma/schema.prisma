@@ -89,6 +89,9 @@ model tm_espec {
   tc_asign  tc_asign[]
   tr_repor  tr_repor[]
   tr_metaspei tr_metaspei[]
+  tr_soap   tr_soap[]
+  tr_indic  tr_indic[]
+  tr_incid  tr_incid[]
 }
 
 model tm_ninos {
@@ -117,6 +120,9 @@ model tm_ninos {
   tm_activ tm_activ[]
   tr_metaspei tr_metaspei[]
   tm_conse tm_conse[]
+  tr_soap  tr_soap[]
+  tr_indic tr_indic[]
+  tr_incid tr_incid[]
 }
 
   model tm_repre {
@@ -329,9 +335,65 @@ model tr_metaspei {
   met_prog  Float    @default(0)
   met_estd  String   @db.VarChar(20)
   met_crea  DateTime @default(now())
+  met_categ String?  @db.VarChar(50)
+  met_line  Float?   @db.DoublePrecision
+  met_crit  String?  @db.Text
+  met_obse  String?  @db.Text
+  met_fini  DateTime? @db.Date
+  met_ffin  DateTime? @db.Date
 
   tm_ninos  tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
   tm_espec  tm_espec @relation(fields: [esp_codi], references: [esp_codi])
+}
+
+model tr_soap {
+  soap_codi String   @id @db.VarChar(10)
+  nin_codi  String   @db.VarChar(10)
+  esp_codi  String   @db.VarChar(11)
+  soap_subj String   @db.Text
+  soap_obje String   @db.Text
+  soap_anal String   @db.Text
+  soap_plan String   @db.Text
+  soap_fech DateTime @default(now()) @db.Timestamp()
+
+  tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
+  tm_espec tm_espec @relation(fields: [esp_codi], references: [esp_codi])
+}
+
+model tr_indic {
+  ind_codi String   @id @db.VarChar(10)
+  nin_codi String   @db.VarChar(10)
+  esp_codi String   @db.VarChar(11)
+  ind_tipo String   @db.VarChar(30)
+  ind_area String   @db.VarChar(50)
+  ind_frec String   @db.VarChar(30)
+  ind_dura String?  @db.VarChar(30)
+  ind_prio String   @db.VarChar(15)
+  ind_vige DateTime? @db.Date
+  ind_desc String   @db.Text
+  ind_crea DateTime @default(now()) @db.Timestamp()
+
+  tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
+  tm_espec tm_espec @relation(fields: [esp_codi], references: [esp_codi])
+}
+
+model tr_incid {
+  inc_codi String   @id @db.VarChar(10)
+  nin_codi String   @db.VarChar(10)
+  esp_codi String   @db.VarChar(11)
+  inc_tipo String   @db.VarChar(50)
+  inc_dura String   @db.VarChar(20)
+  inc_deto String   @db.VarChar(100)
+  inc_ruti String?  @db.Text
+  inc_seve String   @db.VarChar(20)
+  inc_conse String? @db.Text
+  inc_inter String? @db.Text
+  inc_resu String?  @db.Text
+  inc_obse String?  @db.Text
+  inc_time DateTime @default(now()) @db.Timestamp()
+
+  tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
+  tm_espec tm_espec @relation(fields: [esp_codi], references: [esp_codi])
 }
 
 model tr_feedb {

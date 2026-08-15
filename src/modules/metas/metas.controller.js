@@ -16,7 +16,7 @@ const getMetasNino = catchAsync(async (req, res) => {
 
 // Crear una nueva meta PEI
 const crearMeta = catchAsync(async (req, res) => {
-  const { nin_codi, met_desc, met_ttria } = req.body;
+  const { nin_codi, met_desc, met_ttria, met_categ, met_line, met_crit, met_obse, met_fini, met_ffin } = req.body;
 
   // Obtener al especialista autenticado
   const especialista = await prisma.tm_espec.findUnique({
@@ -37,8 +37,14 @@ const crearMeta = catchAsync(async (req, res) => {
       met_desc,
       met_ttria: parseInt(met_ttria) || 20,
       met_trial: 0,
-      met_prog: 0,
-      met_estd: 'EN PROGRESO'
+      met_prog: met_line ? parseFloat(met_line) : 0,
+      met_estd: 'EN PROGRESO',
+      met_categ: met_categ || null,
+      met_line: met_line ? parseFloat(met_line) : null,
+      met_crit: met_crit || null,
+      met_obse: met_obse || null,
+      met_fini: met_fini ? new Date(met_fini) : null,
+      met_ffin: met_ffin ? new Date(met_ffin) : null
     }
   });
 

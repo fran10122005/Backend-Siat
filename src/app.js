@@ -46,6 +46,7 @@ const reportesRoutes = require('./modules/reportes/reportes.routes');
 const adminRoutes = require('./modules/admin/admin.routes');
 const metasRoutes = require('./modules/metas/metas.routes');
 const consentimientoRoutes = require('./modules/consentimiento/consentimiento.routes');
+const especialistaRoutes = require('./modules/especialista/especialista.routes');
 const errorHandler = require('./middleware/errorHandler');
 
 // Rutas de modulos
@@ -58,6 +59,7 @@ app.use('/api/reportes', reportesRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/metas', metasRoutes);
 app.use('/api/consentimiento', consentimientoRoutes);
+app.use('/api/especialista', especialistaRoutes);
 
 // Manejo de rutas no encontradas
 app.use((req, res, next) => {
