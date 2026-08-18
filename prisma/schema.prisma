@@ -240,6 +240,7 @@ model tm_activ {
   act_desc String?  @db.Text
   act_meta String?  @db.Text
   act_guia String?  @db.Text
+  act_med  String?  @db.Text
   act_difi String   @default("Baja") @db.VarChar(10)
   act_estd String   @default("Activa") @db.VarChar(20)
   act_time Int?
