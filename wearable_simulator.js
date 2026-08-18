@@ -142,7 +142,7 @@ async function setupDatabaseState() {
     update: {},
     create: {
       act_codi: SESSION_IDS.act_codi,
-      rep_codi: SESSION_IDS.cat_codi,
+      cat_codi: SESSION_IDS.cat_codi,
       act_trea: 'Supervisión en el Hogar',
       act_meta: 'Medir constantes fisiológicas basales',
       act_guia: 'Mantener la pulsera colocada correctamente',

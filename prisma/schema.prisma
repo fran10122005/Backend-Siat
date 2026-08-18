@@ -120,6 +120,7 @@ model tm_ninos {
   tr_repor tr_repor[]
   tr_bitac tr_bitac[]
   tm_activ tm_activ[]
+  tc_activ_ninos tc_activ_ninos[]
   tr_metaspei tr_metaspei[]
   tm_conse tm_conse[]
   tr_soap  tr_soap[]
@@ -226,23 +227,44 @@ model tm_categ {
   cat_codi String  @id @db.VarChar(10)
   cat_nomb String  @db.VarChar(50)
   cat_deta String? @db.Text
+  cat_estd Boolean @default(true)
 
   tm_activ tm_activ[]
 }
 
 model tm_activ {
-  act_codi String  @id @db.VarChar(10)
-  rep_codi String  @db.VarChar(10)
-  nin_codi String? @db.VarChar(10)
-  act_trea String  @db.VarChar(60)
-  act_meta String? @db.Text
-  act_guia String? @db.Text
+  act_codi String   @id @db.VarChar(10)
+  cat_codi String   @db.VarChar(10)
+  nin_codi String?  @db.VarChar(10)
+  act_trea String   @db.VarChar(60)
+  act_desc String?  @db.Text
+  act_meta String?  @db.Text
+  act_guia String?  @db.Text
+  act_difi String   @default("Baja") @db.VarChar(10)
+  act_estd String   @default("Activa") @db.VarChar(20)
   act_time Int?
+  act_crea DateTime @default(now()) @db.Timestamp()
 
-  tm_categ tm_categ   @relation(fields: [rep_codi], references: [cat_codi])
-  tm_ninos tm_ninos?  @relation(fields: [nin_codi], references: [nin_codi])
-  tc_guias tc_guias[]
-  tr_sesio tr_sesio[]
+  tm_categ        tm_categ          @relation(fields: [cat_codi], references: [cat_codi])
+  tm_ninos        tm_ninos?         @relation(fields: [nin_codi], references: [nin_codi])
+  tc_guias        tc_guias[]
+  tr_sesio        tr_sesio[]
+  tc_activ_ninos  tc_activ_ninos[]
+}
+
+model tc_activ_ninos {
+  acn_codi String   @id @db.VarChar(10)
+  act_codi String   @db.VarChar(10)
+  nin_codi String   @db.VarChar(10)
+  acn_estd String   @default("Activa") @db.VarChar(20)
+  acn_asig DateTime @default(now()) @db.Timestamp()
+  acn_nota String?  @db.Text
+
+  tm_activ tm_activ @relation(fields: [act_codi], references: [act_codi])
+  tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
+
+  @@index([nin_codi])
+  @@index([act_codi])
 }
 
 model tm_instr {

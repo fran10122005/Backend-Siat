@@ -7,8 +7,10 @@ const validateSchema = (schema) => (req, res, next) => {
       query: req.query,
       params: req.params,
     });
-    // Exponer el cuerpo validado/saneado (Zod elimina claves desconocidas)
+    // Exponer los datos validados/saneados (Zod elimina claves desconocidas)
     req.validatedBody = result.body;
+    req.validatedQuery = result.query;
+    req.validatedParams = result.params;
     next();
   } catch (error) {
     if (error && (error.errors || error.issues)) {

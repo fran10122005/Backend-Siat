@@ -1,4 +1,4 @@
--- CreateEnum
+﻿-- CreateEnum
 CREATE TYPE "gender_enum" AS ENUM ('M', 'F');
 
 -- CreateTable
@@ -42,6 +42,8 @@ CREATE TABLE "tm_insti" (
     "ins_dire" TEXT NOT NULL,
     "ins_telf" VARCHAR(15) NOT NULL,
     "ins_pers" VARCHAR(50),
+    "ins_emai" VARCHAR(120),
+    "ins_web" VARCHAR(200),
     "ins_estd" BOOLEAN NOT NULL DEFAULT true,
 
     CONSTRAINT "tm_insti_pkey" PRIMARY KEY ("ins_codi")
@@ -66,6 +68,9 @@ CREATE TABLE "tm_espec" (
     "esp_apel" VARCHAR(50) NOT NULL,
     "esc_codi" VARCHAR(10) NOT NULL,
     "esp_gner" "gender_enum" NOT NULL DEFAULT 'F',
+    "esp_tdoc" VARCHAR(2) NOT NULL DEFAULT 'V',
+    "esp_fnac" DATE,
+    "esp_foto" TEXT,
     "esp_licencia" VARCHAR(50),
     "esp_telf" VARCHAR(15),
 
@@ -83,6 +88,8 @@ CREATE TABLE "tm_ninos" (
     "nin_nivd" VARCHAR(20) NOT NULL,
     "sen_codi" VARCHAR(10),
     "nin_ingr" TIMESTAMP NOT NULL,
+    "nin_foto" TEXT,
+    "nin_diag" TEXT,
 
     CONSTRAINT "tm_ninos_pkey" PRIMARY KEY ("nin_codi")
 );
@@ -91,13 +98,22 @@ CREATE TABLE "tm_ninos" (
 CREATE TABLE "tm_repre" (
     "rep_cod" VARCHAR(10) NOT NULL,
     "usu_codi" VARCHAR(10) NOT NULL,
+    "rep_cedu" VARCHAR(11),
     "rep_nomb" VARCHAR(50) NOT NULL,
     "rep_apel" VARCHAR(50) NOT NULL,
-    "nin_codi" VARCHAR(10) NOT NULL,
     "rep_rela" VARCHAR(20) NOT NULL,
     "rep_telf" VARCHAR(15) NOT NULL,
+    "rep_foto" TEXT,
 
     CONSTRAINT "tm_repre_pkey" PRIMARY KEY ("rep_cod")
+);
+
+-- CreateTable
+CREATE TABLE "tm_repre_ninos" (
+    "rep_cod" VARCHAR(10) NOT NULL,
+    "nin_codi" VARCHAR(10) NOT NULL,
+
+    CONSTRAINT "tm_repre_ninos_pkey" PRIMARY KEY ("rep_cod","nin_codi")
 );
 
 -- CreateTable
@@ -278,8 +294,64 @@ CREATE TABLE "tr_metaspei" (
     "met_prog" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "met_estd" VARCHAR(20) NOT NULL,
     "met_crea" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "met_categ" VARCHAR(50),
+    "met_line" DOUBLE PRECISION,
+    "met_crit" TEXT,
+    "met_obse" TEXT,
+    "met_fini" DATE,
+    "met_ffin" DATE,
 
     CONSTRAINT "tr_metaspei_pkey" PRIMARY KEY ("met_codi")
+);
+
+-- CreateTable
+CREATE TABLE "tr_soap" (
+    "soap_codi" VARCHAR(10) NOT NULL,
+    "nin_codi" VARCHAR(10) NOT NULL,
+    "esp_codi" VARCHAR(11) NOT NULL,
+    "soap_subj" TEXT NOT NULL,
+    "soap_obje" TEXT NOT NULL,
+    "soap_anal" TEXT NOT NULL,
+    "soap_plan" TEXT NOT NULL,
+    "soap_fech" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "tr_soap_pkey" PRIMARY KEY ("soap_codi")
+);
+
+-- CreateTable
+CREATE TABLE "tr_indic" (
+    "ind_codi" VARCHAR(10) NOT NULL,
+    "nin_codi" VARCHAR(10) NOT NULL,
+    "esp_codi" VARCHAR(11) NOT NULL,
+    "ind_tipo" VARCHAR(30) NOT NULL,
+    "ind_area" VARCHAR(50) NOT NULL,
+    "ind_frec" VARCHAR(30) NOT NULL,
+    "ind_dura" VARCHAR(30),
+    "ind_prio" VARCHAR(15) NOT NULL,
+    "ind_vige" DATE,
+    "ind_desc" TEXT NOT NULL,
+    "ind_crea" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "tr_indic_pkey" PRIMARY KEY ("ind_codi")
+);
+
+-- CreateTable
+CREATE TABLE "tr_incid" (
+    "inc_codi" VARCHAR(10) NOT NULL,
+    "nin_codi" VARCHAR(10) NOT NULL,
+    "esp_codi" VARCHAR(11) NOT NULL,
+    "inc_tipo" VARCHAR(50) NOT NULL,
+    "inc_dura" VARCHAR(20) NOT NULL,
+    "inc_deto" VARCHAR(100) NOT NULL,
+    "inc_ruti" TEXT,
+    "inc_seve" VARCHAR(20) NOT NULL,
+    "inc_conse" TEXT,
+    "inc_inter" TEXT,
+    "inc_resu" TEXT,
+    "inc_obse" TEXT,
+    "inc_time" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "tr_incid_pkey" PRIMARY KEY ("inc_codi")
 );
 
 -- CreateTable
@@ -316,6 +388,7 @@ CREATE TABLE "tm_admin" (
     "ins_codi" VARCHAR(11) NOT NULL,
     "adm_nomb" VARCHAR(50) NOT NULL,
     "adm_apel" VARCHAR(50) NOT NULL,
+    "adm_foto" TEXT,
 
     CONSTRAINT "tm_admin_pkey" PRIMARY KEY ("adm_codi")
 );
@@ -353,11 +426,42 @@ CREATE TABLE "tr_audito" (
     CONSTRAINT "tr_audito_pkey" PRIMARY KEY ("aud_codi")
 );
 
+-- CreateTable
+CREATE TABLE "tm_passkeys" (
+    "pk_id" VARCHAR(200) NOT NULL,
+    "usu_codi" VARCHAR(10) NOT NULL,
+    "pk_nomb" VARCHAR(60) NOT NULL,
+    "pk_public_key" TEXT NOT NULL,
+    "pk_transports" TEXT,
+    "pk_counter" INTEGER NOT NULL DEFAULT 0,
+    "pk_created" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "pk_last_used" TIMESTAMP,
+
+    CONSTRAINT "tm_passkeys_pkey" PRIMARY KEY ("pk_id")
+);
+
+-- CreateTable
+CREATE TABLE "tm_conse" (
+    "con_codi" VARCHAR(10) NOT NULL,
+    "nin_codi" VARCHAR(10) NOT NULL,
+    "rep_cod" VARCHAR(10) NOT NULL,
+    "con_vers" VARCHAR(10) NOT NULL,
+    "con_fech" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "con_ip" VARCHAR(45),
+    "con_acep" BOOLEAN NOT NULL DEFAULT false,
+    "con_text" TEXT NOT NULL,
+
+    CONSTRAINT "tm_conse_pkey" PRIMARY KEY ("con_codi")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "tm_espec_usu_codi_key" ON "tm_espec"("usu_codi");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "tm_repre_usu_codi_key" ON "tm_repre"("usu_codi");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "tm_repre_rep_cedu_key" ON "tm_repre"("rep_cedu");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "tm_dispo_dis_sral_key" ON "tm_dispo"("dis_sral");
@@ -390,7 +494,10 @@ ALTER TABLE "tm_ninos" ADD CONSTRAINT "tm_ninos_ins_codi_fkey" FOREIGN KEY ("ins
 ALTER TABLE "tm_repre" ADD CONSTRAINT "tm_repre_usu_codi_fkey" FOREIGN KEY ("usu_codi") REFERENCES "tm_usuar"("usu_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "tm_repre" ADD CONSTRAINT "tm_repre_nin_codi_fkey" FOREIGN KEY ("nin_codi") REFERENCES "tm_ninos"("nin_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "tm_repre_ninos" ADD CONSTRAINT "tm_repre_ninos_rep_cod_fkey" FOREIGN KEY ("rep_cod") REFERENCES "tm_repre"("rep_cod") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tm_repre_ninos" ADD CONSTRAINT "tm_repre_ninos_nin_codi_fkey" FOREIGN KEY ("nin_codi") REFERENCES "tm_ninos"("nin_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "tc_sensi" ADD CONSTRAINT "tc_sensi_nin_codi_fkey" FOREIGN KEY ("nin_codi") REFERENCES "tm_ninos"("nin_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -465,6 +572,24 @@ ALTER TABLE "tr_metaspei" ADD CONSTRAINT "tr_metaspei_nin_codi_fkey" FOREIGN KEY
 ALTER TABLE "tr_metaspei" ADD CONSTRAINT "tr_metaspei_esp_codi_fkey" FOREIGN KEY ("esp_codi") REFERENCES "tm_espec"("esp_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "tr_soap" ADD CONSTRAINT "tr_soap_nin_codi_fkey" FOREIGN KEY ("nin_codi") REFERENCES "tm_ninos"("nin_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tr_soap" ADD CONSTRAINT "tr_soap_esp_codi_fkey" FOREIGN KEY ("esp_codi") REFERENCES "tm_espec"("esp_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tr_indic" ADD CONSTRAINT "tr_indic_nin_codi_fkey" FOREIGN KEY ("nin_codi") REFERENCES "tm_ninos"("nin_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tr_indic" ADD CONSTRAINT "tr_indic_esp_codi_fkey" FOREIGN KEY ("esp_codi") REFERENCES "tm_espec"("esp_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tr_incid" ADD CONSTRAINT "tr_incid_nin_codi_fkey" FOREIGN KEY ("nin_codi") REFERENCES "tm_ninos"("nin_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tr_incid" ADD CONSTRAINT "tr_incid_esp_codi_fkey" FOREIGN KEY ("esp_codi") REFERENCES "tm_espec"("esp_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "tr_feedb" ADD CONSTRAINT "tr_feedb_ale_codi_fkey" FOREIGN KEY ("ale_codi") REFERENCES "tr_alert"("ale_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -484,4 +609,13 @@ ALTER TABLE "tr_bitac" ADD CONSTRAINT "tr_bitac_nin_codi_fkey" FOREIGN KEY ("nin
 
 -- AddForeignKey
 ALTER TABLE "tr_audito" ADD CONSTRAINT "tr_audito_usu_codi_fkey" FOREIGN KEY ("usu_codi") REFERENCES "tm_usuar"("usu_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tm_passkeys" ADD CONSTRAINT "tm_passkeys_usu_codi_fkey" FOREIGN KEY ("usu_codi") REFERENCES "tm_usuar"("usu_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tm_conse" ADD CONSTRAINT "tm_conse_nin_codi_fkey" FOREIGN KEY ("nin_codi") REFERENCES "tm_ninos"("nin_codi") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tm_conse" ADD CONSTRAINT "tm_conse_rep_cod_fkey" FOREIGN KEY ("rep_cod") REFERENCES "tm_repre"("rep_cod") ON DELETE RESTRICT ON UPDATE CASCADE;
 
