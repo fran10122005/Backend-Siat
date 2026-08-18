@@ -25,7 +25,8 @@ async function main() {
 
     const placeholders = current.map((_, i) => `$${i + 1}`).join(', ');
     const deleted = await prisma.$executeRawUnsafe(
-      `DELETE FROM "_prisma_migrations" WHERE migration_name NOT IN (${placeholders})`,
+      `DELETE FROM "_prisma_migrations" WHERE "migration_name" NOT IN (${placeholders}) ` +
+        `OR "rolled_back_at" IS NOT NULL OR "logs" IS NOT NULL OR "finished_at" IS NULL`,
       ...current
     );
 
