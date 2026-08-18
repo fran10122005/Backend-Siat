@@ -1,4 +1,12 @@
-﻿-- CreateEnum
+-- Migracion unificada del esquema SIAT (baseline).
+-- Idempotente: si las tablas ya existen (BD en produccion) no hace nada y
+-- Prisma la registra como aplicada. En una BD nueva crea todo el esquema.
+-- (No borra ni altera datos existentes).
+
+DO $$
+BEGIN
+  IF to_regclass('tm_permi') IS NULL THEN
+-- CreateEnum
 CREATE TYPE "gender_enum" AS ENUM ('M', 'F');
 
 -- CreateTable
@@ -619,3 +627,5 @@ ALTER TABLE "tm_conse" ADD CONSTRAINT "tm_conse_nin_codi_fkey" FOREIGN KEY ("nin
 -- AddForeignKey
 ALTER TABLE "tm_conse" ADD CONSTRAINT "tm_conse_rep_cod_fkey" FOREIGN KEY ("rep_cod") REFERENCES "tm_repre"("rep_cod") ON DELETE RESTRICT ON UPDATE CASCADE;
 
+  END IF;
+END $$;

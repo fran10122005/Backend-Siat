@@ -4,7 +4,7 @@
   "description": "Backend for SIAT",
   "main": "index.js",
   "scripts": {
-    "start": "prisma migrate deploy && node index.js",
+    "start": "node scripts/ensure-migrations.js && prisma migrate deploy && node index.js",
     "dev": "nodemon index.js",
     "test": "jest --forceExit",
     "postinstall": "prisma generate"
