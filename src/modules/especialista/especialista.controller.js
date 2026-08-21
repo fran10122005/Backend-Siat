@@ -88,6 +88,23 @@ const crearIndicacion = catchAsync(async (req, res) => {
   res.status(201).json({ status: 'success', data: indicacion });
 });
 
+// Marcar indicación como leída
+const marcarIndicacionLeida = catchAsync(async (req, res) => {
+  const { ind_codi } = req.params;
+  try {
+    const indicacion = await prisma.tr_indic.update({
+      where: { ind_codi },
+      data: { ind_leid: true }
+    });
+    res.status(200).json({ status: 'ok', data: indicacion });
+  } catch (err) {
+    if (err.code === 'P2025') {
+      return res.status(404).json({ error: 'Indicación no encontrada' });
+    }
+    throw err;
+  }
+});
+
 // ─── INCIDENTES CONDUCTUALES ──────────────────────────────────────────────────
 
 const listarIncidentes = catchAsync(async (req, res) => {
@@ -191,6 +208,7 @@ module.exports = {
   crearSoap,
   listarIndicaciones,
   crearIndicacion,
+  marcarIndicacionLeida,
   listarIncidentes,
   crearIncidente,
   listarAlertasNino
