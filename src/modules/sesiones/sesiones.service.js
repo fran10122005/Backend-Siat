@@ -10,23 +10,31 @@ class SesionesService {
   // ========================== SESIONES (TERAPIAS) ==========================
 
   async iniciarSesion(data) {
-    const [nino, actividad, dispositivo] = await Promise.all([
+    const [nino, actividad] = await Promise.all([
       prisma.tm_ninos.findUnique({ where: { nin_codi: data.nin_codi } }),
       prisma.tm_activ.findUnique({ where: { act_codi: data.act_codi } }),
-      prisma.tm_dispo.findUnique({ where: { dis_codi: data.dis_codi } }),
     ]);
 
     if (!nino) throw new AppError('Niño no encontrado', 404);
     if (!actividad) throw new AppError('Actividad no encontrada', 404);
     if (actividad.act_estd === 'Inactiva') throw new AppError('La actividad se encuentra inactiva', 409);
-    if (!dispositivo) throw new AppError('Dispositivo no encontrado', 404);
+
+    let disCodi = data.dis_codi;
+    if (!disCodi) {
+      const defaultDevice = await prisma.tm_dispo.findFirst();
+      if (!defaultDevice) throw new AppError('No hay dispositivos registrados. Asigne un dispositivo primero.', 400);
+      disCodi = defaultDevice.dis_codi;
+    } else {
+      const dispositivo = await prisma.tm_dispo.findUnique({ where: { dis_codi: disCodi } });
+      if (!dispositivo) throw new AppError('Dispositivo no encontrado', 404);
+    }
 
     const sesion = await prisma.tr_sesio.create({
       data: {
         ses_codi: generateId('S'),
         nin_codi: data.nin_codi,
         act_codi: data.act_codi,
-        dis_codi: data.dis_codi,
+        dis_codi: disCodi,
         ses_inic: new Date(),
       },
       include: { tm_activ: true, tm_dispo: true },

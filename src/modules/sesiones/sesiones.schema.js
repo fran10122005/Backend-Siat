@@ -18,7 +18,7 @@ const iniciarSesionSchema = z.object({
   body: z.object({
     nin_codi: codigo10,
     act_codi: codigo10,
-    dis_codi: codigo10,
+    dis_codi: codigo10.optional(),
   }),
 });
 
