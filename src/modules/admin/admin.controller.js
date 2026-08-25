@@ -1,6 +1,7 @@
 const adminService = require('./admin.service');
 const catchAsync = require('../../utils/catchAsync');
 const prisma = require('../../config/db');
+const AppError = require('../../utils/AppError');
 
 const getHealth = catchAsync(async (req, res) => {
   // Medir varias veces la latencia real de la base de datos (SELECT 1)
@@ -60,7 +61,12 @@ const listAsignaciones = catchAsync(async (req, res) => {
 
 const createEspecialista = catchAsync(async (req, res) => {
   const data = { ...req.body };
-  data.ins_codi = 'I001';
+  const admin = await prisma.tm_admin.findUnique({
+    where: { usu_codi: req.user.usu_codi },
+    select: { ins_codi: true }
+  });
+  if (!admin) throw new AppError('No se encontró la institución del administrador', 404);
+  data.ins_codi = admin.ins_codi;
   const result = await adminService.createEspecialista(data);
   await adminService.logAudit(req.user.usu_codi, 'SUCCESS', `Creación de especialista: ${data.nombre} ${data.apellido}`, req.ip);
   res.status(201).json({ message: 'Especialista creado', data: result });
