@@ -37,6 +37,9 @@ const inviteRepresentativeSchema = z.object({
       rep_telf: z.string().min(7).max(15),
     usu_crro: z.string().email('Debe ser un correo electrónico válido'),
     nin_foto: z.string().url('URL de foto inválida').optional().nullable(),
+    nin_diag: z.string().max(255).optional().nullable(),
+    nin_docs: z.array(z.string().url('URL de documento inválida')).max(20, 'Máximo 20 documentos').optional(),
+    rep_foto: z.string().url('URL de foto inválida').optional().nullable(),
     sen_tipo: z.string().max(30).optional(),
     sen_nvli: z.string().max(20).optional(),
   })

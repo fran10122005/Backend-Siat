@@ -106,6 +106,7 @@ model tm_ninos {
   nin_ingr DateTime    @db.Timestamp()
   nin_foto String?     @db.Text
   nin_diag String?     @db.Text
+  nin_docs Json?
 
   tc_sensi_rel tc_sensi? @relation("ninos_to_sensi", fields: [sen_codi], references: [sen_codi])
   tm_insti     tm_insti  @relation(fields: [ins_codi], references: [ins_codi])

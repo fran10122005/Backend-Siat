@@ -224,7 +224,11 @@ class NinosService {
           nin_gner: data.nin_gner,
           nin_nivd: data.nin_nivd,
           nin_ingr: new Date(),
-          nin_foto: data.nin_foto || null
+          nin_foto: data.nin_foto || null,
+          ...(data.nin_diag ? { nin_diag: data.nin_diag } : {}),
+          ...(Array.isArray(data.nin_docs) && data.nin_docs.length
+            ? { nin_docs: data.nin_docs.map((url, i) => ({ url, nombre: `Documento ${i + 1}` })) }
+            : {})
         }
       });
 
@@ -238,7 +242,8 @@ class NinosService {
             rep_nomb: data.rep_nomb,
             rep_apel: data.rep_apel,
             rep_rela: data.rep_rela,
-            rep_telf: data.rep_telf
+            rep_telf: data.rep_telf,
+            ...(data.rep_foto ? { rep_foto: data.rep_foto } : {})
           }
         });
       }
@@ -393,6 +398,7 @@ class NinosService {
       nin_ingr: nino.nin_ingr,
       nin_foto: nino.nin_foto,
       nin_diag: nino.nin_diag,
+      nin_docs: Array.isArray(nino.nin_docs) ? nino.nin_docs : [],
       institucion: nino.tm_insti ? {
         ins_codi: nino.tm_insti.ins_codi,
         ins_nomb: nino.tm_insti.ins_nomb
@@ -545,7 +551,8 @@ class NinosService {
           rep_nomb: nino.tm_repre_ninos[0].tm_repre.rep_nomb,
           rep_apel: nino.tm_repre_ninos[0].tm_repre.rep_apel,
           rep_rela: nino.tm_repre_ninos[0].tm_repre.rep_rela,
-          rep_telf: nino.tm_repre_ninos[0].tm_repre.rep_telf
+          rep_telf: nino.tm_repre_ninos[0].tm_repre.rep_telf,
+          rep_foto: nino.tm_repre_ninos[0].tm_repre.rep_foto
         }
       : null;
 
@@ -560,6 +567,7 @@ class NinosService {
       nin_ingr: nino.nin_ingr,
       nin_foto: nino.nin_foto,
       nin_diag: nino.nin_diag,
+      nin_docs: Array.isArray(nino.nin_docs) ? nino.nin_docs : [],
       institucion: nino.tm_insti ? {
         ins_codi: nino.tm_insti.ins_codi,
         ins_nomb: nino.tm_insti.ins_nomb,
