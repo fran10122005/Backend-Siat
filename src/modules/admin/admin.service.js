@@ -352,6 +352,7 @@ class AdminService {
             rep_rela: true,
             rep_telf: true,
             rep_foto: true,
+            rep_cedu: true,
             tm_repre_ninos: {
               select: {
                 nin_codi: true,
@@ -415,15 +416,44 @@ class AdminService {
     const repre = await prisma.tm_repre.findUnique({ where: { usu_codi: usuCodi } });
     if (!repre) throw new AppError('Representante no encontrado', 404);
 
-    return prisma.tm_repre.update({
-      where: { rep_cod: repre.rep_cod },
-      data: {
-        rep_nomb: data.rep_nomb !== undefined ? data.rep_nomb : undefined,
-        rep_apel: data.rep_apel !== undefined ? data.rep_apel : undefined,
-        rep_telf: data.rep_telf !== undefined ? data.rep_telf : undefined,
-        rep_rela: data.rep_rela !== undefined ? data.rep_rela : undefined,
-        rep_foto: data.rep_foto !== undefined ? data.rep_foto : undefined
+    if (data.rep_cedu && data.rep_cedu !== repre.rep_cedu) {
+      const ceduExists = await prisma.tm_repre.findFirst({
+        where: { rep_cedu: data.rep_cedu, usu_codi: { not: usuCodi } }
+      });
+      if (ceduExists) throw new AppError('La cédula ingresada ya está registrada', 400);
+    }
+
+    if (data.usu_crro) {
+      const emailExists = await prisma.tm_usuar.findFirst({
+        where: { usu_crro: data.usu_crro, usu_codi: { not: usuCodi } }
+      });
+      if (emailExists) throw new AppError('El correo electrónico ya está en uso', 400);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.tm_repre.update({
+        where: { rep_cod: repre.rep_cod },
+        data: {
+          rep_nomb: data.rep_nomb !== undefined ? data.rep_nomb : undefined,
+          rep_apel: data.rep_apel !== undefined ? data.rep_apel : undefined,
+          rep_telf: data.rep_telf !== undefined ? data.rep_telf : undefined,
+          rep_rela: data.rep_rela !== undefined ? data.rep_rela : undefined,
+          rep_foto: data.rep_foto !== undefined ? data.rep_foto : undefined,
+          rep_cedu: data.rep_cedu !== undefined ? data.rep_cedu : undefined
+        }
+      });
+
+      if (data.usu_crro) {
+        await tx.tm_usuar.update({
+          where: { usu_codi: usuCodi },
+          data: { usu_crro: data.usu_crro }
+        });
       }
+    });
+
+    return prisma.tm_repre.findUnique({
+      where: { usu_codi: usuCodi },
+      include: { tm_usuar: { select: { usu_crro: true } } }
     });
   }
 

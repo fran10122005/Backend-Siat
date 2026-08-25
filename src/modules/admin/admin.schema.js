@@ -188,7 +188,9 @@ const updateRepresentanteSchema = z.object({
     rep_apel: z.string().min(2).max(50).optional(),
     rep_telf: z.string().max(15).optional(),
     rep_rela: z.string().max(20).optional(),
-    rep_foto: z.string().url('URL de foto inválida').optional().nullable()
+    rep_foto: z.string().url('URL de foto inválida').optional().nullable(),
+    rep_cedu: z.string().regex(/^\d{6,8}$/, 'La cédula debe tener entre 6 y 8 dígitos').optional(),
+    usu_crro: z.string().email('Correo electrónico inválido').max(50).optional()
   })
 });
 
