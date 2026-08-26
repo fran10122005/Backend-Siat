@@ -278,7 +278,7 @@ class NinosService {
             nin_codi: nino.nin_codi,
             sen_tipo: data.sen_tipo,
             sen_nvli: data.sen_nvli,
-            sen_nota: 'Registrado en admisión'
+            sen_nota: data.sen_nota || 'Registrado en admisión'
           }
         });
         

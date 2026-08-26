@@ -42,6 +42,7 @@ const inviteRepresentativeSchema = z.object({
     rep_foto: z.string().url('URL de foto inválida').optional().nullable(),
     sen_tipo: z.string().max(30).optional(),
     sen_nvli: z.string().max(20).optional(),
+    sen_nota: z.string().max(255).optional(),
   })
 });
 
