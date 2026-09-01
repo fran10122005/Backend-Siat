@@ -173,6 +173,43 @@ const getAuditoria = catchAsync(async (req, res) => {
   res.status(200).json({ data: logs });
 });
 
+
+const updateNino = catchAsync(async (req, res) => {
+  const { nin_codi } = req.params;
+  const result = await adminService.updateNino(nin_codi, req.body);
+  await adminService.logAudit(req.user.usu_codi, 'INFO', `Datos del paciente ${nin_codi} actualizados`, req.ip);
+  res.json({ success: true, data: result });
+});
+
+const addNinoDocumento,
+  getReporteSchedule,
+  saveReporteSchedule,
+  enviarReporteAhora = catchAsync(async (req, res) => {
+  const { nin_codi } = req.params;
+  const { doc } = req.body;
+  const result = await adminService.addNinoDocumento(nin_codi, doc);
+  await adminService.logAudit(req.user.usu_codi, 'INFO', `Documento adjuntado al paciente ${nin_codi}`, req.ip);
+  res.json({ success: true, data: result });
+});
+
+
+const getReporteSchedule = catchAsync(async (req, res) => {
+  const config = adminService.getReporteSchedule();
+  res.json({ success: true, data: config });
+});
+
+const saveReporteSchedule = catchAsync(async (req, res) => {
+  const updated = adminService.saveReporteSchedule(req.body);
+  await adminService.logAudit(req.user.usu_codi, 'INFO', 'Configuración de reporte programado actualizada', req.ip);
+  res.json({ success: true, data: updated });
+});
+
+const enviarReporteAhora = catchAsync(async (req, res) => {
+  const result = await adminService.enviarReporteAhora(req.body);
+  await adminService.logAudit(req.user.usu_codi, 'INFO', `Reporte enviado manualmente a ${result.sentTo.join(', ')}`, req.ip);
+  res.json({ success: true, message: 'Reporte enviado exitosamente', data: result });
+});
+
 module.exports = {
   getHealth,
   listNinos,
@@ -194,5 +231,7 @@ module.exports = {
   resetUserPassword,
   updateRepresentante,
   updateNinoFoto,
-  getAuditoria
+  getAuditoria,
+  updateNino,
+  addNinoDocumento
 };

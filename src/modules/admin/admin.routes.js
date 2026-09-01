@@ -29,6 +29,8 @@ router.patch('/users/:usu_codi/estado', adminController.toggleUser);
 router.post('/users/:usu_codi/password', adminController.resetUserPassword);
 router.put('/representantes/:usu_codi', validateSchema(adminSchemas.updateRepresentanteSchema), adminController.updateRepresentante);
 router.patch('/ninos/:nin_codi/foto', validateSchema(adminSchemas.updateNinoFotoSchema), adminController.updateNinoFoto);
+router.patch('/ninos/:nin_codi', adminController.updateNino);
+router.post('/ninos/:nin_codi/documentos', adminController.addNinoDocumento);
 
 router.post('/especialistas', validateSchema(adminSchemas.createEspecialistaSchema), adminController.createEspecialista);
 router.put('/especialistas/:esp_codi', validateSchema(adminSchemas.updateEspecialistaSchema), adminController.updateEspecialista);
@@ -41,5 +43,10 @@ router.put('/instituciones/:ins_codi', validateSchema(adminSchemas.updateInstitu
 router.post('/especialidades', validateSchema(adminSchemas.createEspecialidadSchema), adminController.createEspecialidad);
 router.put('/especialidades/:esc_codi', validateSchema(adminSchemas.updateEspecialidadSchema), adminController.updateEspecialidad);
 router.patch('/especialidades/:esc_codi/estado', validateSchema(adminSchemas.toggleEspecialidadSchema), adminController.toggleEspecialidad);
+
+
+router.get('/reportes/programados', adminController.getReporteSchedule);
+router.post('/reportes/programados', adminController.saveReporteSchedule);
+router.post('/reportes/enviar-ahora', adminController.enviarReporteAhora);
 
 module.exports = router;

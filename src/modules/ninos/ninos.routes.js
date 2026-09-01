@@ -37,7 +37,7 @@ router.post('/bitacora', authenticate, requireRole(['ROL_REP']), ninosController
 router.get('/:nin_codi/ficha', authenticate, ninosController.obtenerFichaClinica);
 
 // PUT /api/ninos/:nin_codi/ficha (Actualizar ficha clínica)
-router.put('/:nin_codi/ficha', authenticate, requireRole(['ROL_ESP']), ninosController.actualizarFichaClinica);
+router.put('/:nin_codi/ficha', authenticate, requireRole(['ROL_ESP', 'ROL_ADM', 'ROL_DIR']), ninosController.actualizarFichaClinica);
 
 module.exports = router;
 

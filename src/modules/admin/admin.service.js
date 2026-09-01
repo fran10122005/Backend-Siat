@@ -365,6 +365,8 @@ class AdminService {
                     nin_gner: true,
                     nin_nivd: true,
                     nin_foto: true,
+                    nin_diag: true,
+                    nin_docs: true,
                   },
                 },
               },
@@ -467,5 +469,238 @@ class AdminService {
     });
   }
 }
+
+
+  async updateNino(ninCodi, data) {
+    const nino = await prisma.tm_ninos.findUnique({ where: { nin_codi: ninCodi } });
+    if (!nino) throw new AppError('Paciente no encontrado', 404);
+
+    return prisma.tm_ninos.update({
+      where: { nin_codi: ninCodi },
+      data: {
+        ...(data.nin_nomb ? { nin_nomb: data.nin_nomb } : {}),
+        ...(data.nin_apel ? { nin_apel: data.nin_apel } : {}),
+        ...(data.nin_fnac ? { nin_fnac: new Date(data.nin_fnac) } : {}),
+        ...(data.nin_gner ? { nin_gner: data.nin_gner } : {}),
+        ...(data.nin_nivd ? { nin_nivd: data.nin_nivd } : {}),
+        ...(data.nin_diag !== undefined ? { nin_diag: data.nin_diag || null } : {}),
+        ...(data.nin_docs !== undefined ? { nin_docs: data.nin_docs } : {}),
+        ...(data.nin_foto !== undefined ? { nin_foto: data.nin_foto || null } : {})
+      }
+    });
+  }
+
+  async addNinoDocumento(ninCodi, docUrl) {
+    const nino = await prisma.tm_ninos.findUnique({ where: { nin_codi: ninCodi } });
+    if (!nino) throw new AppError('Paciente no encontrado', 404);
+
+    const currentDocs = Array.isArray(nino.nin_docs) ? nino.nin_docs : [];
+    const newDocs = [...currentDocs, docUrl];
+
+    return prisma.tm_ninos.update({
+      where: { nin_codi: ninCodi },
+      data: { nin_docs: newDocs }
+    });
+  }
+}
+
+
+  getReporteSchedule() {
+    const configPath = path.resolve(__dirname, '../../config/scheduled_reports.json');
+    if (!fs.existsSync(configPath)) {
+      return {
+        enabled: false,
+        frequency: 'weekly',
+        day: 'lunes',
+        time: '08:00',
+        email: '',
+        additionalEmails: '',
+        subject: 'Reporte Ejecutivo de Gestión Clínica — SIAT',
+        modules: { metricas: true, pacientes: true, especialistas: true, auditoria: true }
+      };
+    }
+    try {
+      return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } catch {
+      return { enabled: false, frequency: 'weekly', day: 'lunes', time: '08:00', email: '' };
+    }
+  }
+
+  saveReporteSchedule(config) {
+    const configPath = path.resolve(__dirname, '../../config/scheduled_reports.json');
+    const updated = {
+      ...config,
+      updatedAt: new Date().toISOString()
+    };
+    fs.writeFileSync(configPath, JSON.stringify(updated, null, 2), 'utf8');
+    return updated;
+  }
+
+  async compileReporteHtml(modulesConfig, customSubject) {
+    const metricas = await this.getMetricas();
+    const ninos = await prisma.tm_ninos.findMany({
+      take: 10,
+      orderBy: { nin_crea: 'desc' },
+      select: { nin_nomb: true, nin_apel: true, nin_nivd: true, nin_diag: true }
+    });
+    const especialistas = await prisma.tm_espec.findMany({
+      take: 10,
+      include: {
+        tm_usuar: { select: { usu_crro: true, usu_estd: true } },
+        tm_especi: { select: { esc_nomb: true } },
+        _count: { select: { tc_asign: true } }
+      }
+    });
+    const auditoria = await prisma.tr_audito.findMany({
+      take: 8,
+      orderBy: { aud_fech: 'desc' }
+    });
+
+    const fechaActual = new Date().toLocaleDateString('es-VE', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    let html = `
+      <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 650px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+        <div style="background-color: #2563eb; color: #ffffff; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; font-size: 22px; font-weight: bold;">SIAT - Sistema Inteligente de Acompañamiento Terapéutico</h1>
+          <p style="margin: 5px 0 0 0; font-size: 13px; opacity: 0.9;">${customSubject || 'Reporte Ejecutivo de Gestión Clínica'}</p>
+          <p style="margin: 3px 0 0 0; font-size: 11px; opacity: 0.75;">Fecha: ${fechaActual}</p>
+        </div>
+        <div style="padding: 20px; background-color: #ffffff;">
+    `;
+
+    if (modulesConfig.metricas) {
+      html += `
+        <div style="margin-bottom: 24px;">
+          <h3 style="color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 6px; font-size: 16px; margin-top: 0;">📊 Indicadores Generales (KPIs)</h3>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <tr style="background-color: #f8fafc;">
+              <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 13px;"><strong>Pacientes Registrados:</strong></td>
+              <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 13px; text-align: right; color: #2563eb; font-weight: bold;">${metricas.totalNinos}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 13px;"><strong>Especialistas Activos:</strong></td>
+              <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 13px; text-align: right; color: #059669; font-weight: bold;">${metricas.totalEspecialistas}</td>
+            </tr>
+            <tr style="background-color: #f8fafc;">
+              <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 13px;"><strong>Representantes Registrados:</strong></td>
+              <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 13px; text-align: right; color: #7c3aed; font-weight: bold;">${metricas.totalRepresentantes}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 13px;"><strong>Pacientes Asignados:</strong></td>
+              <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 13px; text-align: right; color: #d97706; font-weight: bold;">${metricas.asignadosCount}</td>
+            </tr>
+          </table>
+        </div>
+      `;
+    }
+
+    if (modulesConfig.pacientes && ninos.length > 0) {
+      html += `
+        <div style="margin-bottom: 24px;">
+          <h3 style="color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 6px; font-size: 16px;">👶 Estado de Pacientes Recientes</h3>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px;">
+            <thead>
+              <tr style="background-color: #f1f5f9; text-align: left;">
+                <th style="padding: 8px; border: 1px solid #e2e8f0;">Paciente</th>
+                <th style="padding: 8px; border: 1px solid #e2e8f0;">Nivel TEA</th>
+                <th style="padding: 8px; border: 1px solid #e2e8f0;">Diagnóstico</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${ninos.map(n => `
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">${n.nin_nomb} ${n.nin_apel}</td>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">${n.nin_nivd || 'No clasificado'}</td>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0; color: #64748b;">${(n.nin_diag || '-').substring(0, 45)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    if (modulesConfig.especialistas && especialistas.length > 0) {
+      html += `
+        <div style="margin-bottom: 24px;">
+          <h3 style="color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 6px; font-size: 16px;">🩺 Personal Clínico Especializado</h3>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px;">
+            <thead>
+              <tr style="background-color: #f1f5f9; text-align: left;">
+                <th style="padding: 8px; border: 1px solid #e2e8f0;">Especialista</th>
+                <th style="padding: 8px; border: 1px solid #e2e8f0;">Especialidad</th>
+                <th style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">Pacientes</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${especialistas.map(e => `
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">Dr/a. ${e.esp_nomb} ${e.esp_apel}</td>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">${e.tm_especi?.esc_nomb || 'General'}</td>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center; font-weight: bold; color: #2563eb;">${e._count?.tc_asign || 0}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    if (modulesConfig.auditoria && auditoria.length > 0) {
+      html += `
+        <div style="margin-bottom: 24px;">
+          <h3 style="color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 6px; font-size: 16px;">🚨 Bitácora de Eventos Recientes</h3>
+          <ul style="padding-left: 20px; font-size: 12px; color: #334155; margin-top: 8px;">
+            ${auditoria.map(a => `
+              <li style="margin-bottom: 6px;">
+                <strong>[${a.aud_tipo}]</strong> ${a.aud_desc} <span style="color: #94a3b8; font-size: 11px;">(${new Date(a.aud_fech).toLocaleTimeString('es-VE')})</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    html += `
+          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="font-size: 11px; text-align: center; color: #94a3b8; margin: 0;">
+            Este reporte automático fue generado por el sistema <strong>SIAT-TEA</strong>.<br />
+            Fundación Autismo Atiende · Plataforma de Gestión Clínica.
+          </p>
+        </div>
+      </div>
+    `;
+
+    return html;
+  }
+
+  async enviarReporteAhora(payload) {
+    const { email, additionalEmails, subject, modules } = payload;
+
+    const mainEmail = email || 'admin@funauta.org';
+    const targets = [mainEmail];
+    if (additionalEmails) {
+      additionalEmails.split(',').forEach(e => {
+        const clean = e.trim();
+        if (clean && clean.includes('@')) targets.push(clean);
+      });
+    }
+
+    const htmlContent = await this.compileReporteHtml(modules || { metricas: true, pacientes: true, especialistas: true, auditoria: true }, subject);
+
+    for (const target of targets) {
+      await emailService.sendEmail({
+        to: target,
+        subject: subject || 'Reporte Ejecutivo de Gestión — SIAT',
+        html: htmlContent
+      });
+    }
+
+    return { sentTo: targets };
+  }
 
 module.exports = new AdminService();
