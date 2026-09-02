@@ -538,7 +538,7 @@ class AdminService {
     const metricas = await this.getMetricasDashboard();
     const ninos = await prisma.tm_ninos.findMany({
       take: 10,
-      orderBy: { nin_crea: 'desc' },
+      orderBy: { nin_ingr: 'desc' },
       select: { nin_nomb: true, nin_apel: true, nin_nivd: true, nin_diag: true }
     });
     const especialistas = await prisma.tm_espec.findMany({
@@ -551,7 +551,7 @@ class AdminService {
     });
     const auditoria = await prisma.tr_audito.findMany({
       take: 8,
-      orderBy: { aud_fech: 'desc' }
+      orderBy: { aud_time: 'desc' }
     });
 
     const fechaActual = new Date().toLocaleDateString('es-VE', {
@@ -585,11 +585,11 @@ class AdminService {
             </tr>
             <tr style="background-color: #f8fafc;">
               <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 13px;"><strong>Representantes Registrados:</strong></td>
-              <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 13px; text-align: right; color: #7c3aed; font-weight: bold;">${metricas.totalRepresentantes}</td>
+              <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 13px; text-align: right; color: #7c3aed; font-weight: bold;">${metricas.totalRepresentantes ?? 0}</td>
             </tr>
             <tr>
               <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 13px;"><strong>Pacientes Asignados:</strong></td>
-              <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 13px; text-align: right; color: #d97706; font-weight: bold;">${metricas.asignadosCount}</td>
+              <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 13px; text-align: right; color: #d97706; font-weight: bold;">${metricas.asignacionesActivas ?? 0}</td>
             </tr>
           </table>
         </div>
@@ -655,7 +655,7 @@ class AdminService {
           <ul style="padding-left: 20px; font-size: 12px; color: #334155; margin-top: 8px;">
             ${auditoria.map(a => `
               <li style="margin-bottom: 6px;">
-                <strong>[${a.aud_tipo}]</strong> ${a.aud_desc} <span style="color: #94a3b8; font-size: 11px;">(${new Date(a.aud_fech).toLocaleTimeString('es-VE')})</span>
+                <strong>[${a.aud_tipo}]</strong> ${a.aud_desc} <span style="color: #94a3b8; font-size: 11px;">(${new Date(a.aud_time).toLocaleTimeString('es-VE')})</span>
               </li>
             `).join('')}
           </ul>
