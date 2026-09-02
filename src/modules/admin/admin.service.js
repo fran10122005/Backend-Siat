@@ -5,6 +5,8 @@ const env = require('../../config/env');
 const AppError = require('../../utils/AppError');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { generateId } = require('../../utils/idGenerator');
 
 // Contraseña provisional criptográficamente aleatoria (sin caracteres ambiguos ni confusos)
@@ -468,8 +470,6 @@ class AdminService {
       data: { nin_foto: foto }
     });
   }
-}
-
 
   async updateNino(ninCodi, data) {
     const nino = await prisma.tm_ninos.findUnique({ where: { nin_codi: ninCodi } });
@@ -502,8 +502,6 @@ class AdminService {
       data: { nin_docs: newDocs }
     });
   }
-}
-
 
   getReporteSchedule() {
     const configPath = path.resolve(__dirname, '../../config/scheduled_reports.json');
@@ -537,7 +535,7 @@ class AdminService {
   }
 
   async compileReporteHtml(modulesConfig, customSubject) {
-    const metricas = await this.getMetricas();
+    const metricas = await this.getMetricasDashboard();
     const ninos = await prisma.tm_ninos.findMany({
       take: 10,
       orderBy: { nin_crea: 'desc' },
@@ -702,5 +700,6 @@ class AdminService {
 
     return { sentTo: targets };
   }
+}
 
 module.exports = new AdminService();

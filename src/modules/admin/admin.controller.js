@@ -181,17 +181,13 @@ const updateNino = catchAsync(async (req, res) => {
   res.json({ success: true, data: result });
 });
 
-const addNinoDocumento,
-  getReporteSchedule,
-  saveReporteSchedule,
-  enviarReporteAhora = catchAsync(async (req, res) => {
+const addNinoDocumento = catchAsync(async (req, res) => {
   const { nin_codi } = req.params;
   const { doc } = req.body;
   const result = await adminService.addNinoDocumento(nin_codi, doc);
   await adminService.logAudit(req.user.usu_codi, 'INFO', `Documento adjuntado al paciente ${nin_codi}`, req.ip);
   res.json({ success: true, data: result });
 });
-
 
 const getReporteSchedule = catchAsync(async (req, res) => {
   const config = adminService.getReporteSchedule();
@@ -233,5 +229,8 @@ module.exports = {
   updateNinoFoto,
   getAuditoria,
   updateNino,
-  addNinoDocumento
+  addNinoDocumento,
+  getReporteSchedule,
+  saveReporteSchedule,
+  enviarReporteAhora
 };
