@@ -27,7 +27,9 @@ const envSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),
   CLOUDINARY_API_KEY: z.string().optional().default(''),
   CLOUDINARY_API_SECRET: z.string().optional().default(''),
-  CLOUDINARY_UPLOAD_PRESET: z.string().optional().default('siat_unsigned')
+  CLOUDINARY_UPLOAD_PRESET: z.string().optional().default('siat_unsigned'),
+  // Logo oficial de SIAT (URL pública en Cloudinary, opcional)
+  SIAT_LOGO_URL: z.string().url().optional().default('')
 });
 
 const _env = envSchema.safeParse(process.env);

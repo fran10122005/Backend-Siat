@@ -369,9 +369,9 @@ class AuthService {
       where: { usu_codi },
       include: {
         tm_roles: true,
-        tm_espec: true,
+        tm_espec: { include: { tm_especi: true } },
         tm_repre: true,
-        tm_admin: true
+        tm_admin: { include: { tm_insti: true } }
       }
     });
 
@@ -445,6 +445,25 @@ class AuthService {
           }
         });
       } else if (usuario.rol_codi === 'ROL_ADM' && usuario.tm_admin) {
+        if (profileData.email !== undefined && profileData.email.trim() !== '') {
+          const nuevoCorreo = profileData.email.trim();
+
+          if (nuevoCorreo !== usuario.usu_crro) {
+            const existente = await tx.tm_usuar.findUnique({
+              where: { usu_crro: nuevoCorreo }
+            });
+
+            if (existente && existente.usu_codi !== usu_codi) {
+              throw Object.assign(new Error('El correo electrónico ya está en uso por otra cuenta'), { status: 400 });
+            }
+
+            await tx.tm_usuar.update({
+              where: { usu_codi },
+              data: { usu_crro: nuevoCorreo }
+            });
+          }
+        }
+
         await tx.tm_admin.update({
           where: { usu_codi },
           data: {
@@ -458,6 +477,58 @@ class AuthService {
       // Devolver el perfil actualizado
       return this.getMe(usu_codi);
     });
+  }
+
+  async getNotificaciones(usu_codi) {
+    let pref = await prisma.tm_pref_notif.findUnique({
+      where: { pnf_usuario: usu_codi }
+    });
+
+    if (!pref) {
+      pref = await prisma.tm_pref_notif.create({
+        data: { pnf_usuario: usu_codi }
+      });
+    }
+
+    return {
+      alertas_correo: pref.alertas_correo,
+      alertas_push: pref.alertas_push,
+      resumen_diario: pref.resumen_diario,
+      recordatorios_sesiones: pref.recordatorios_sesiones,
+      novedades: pref.novedades
+    };
+  }
+
+  async updateNotificaciones(usu_codi, data) {
+    const existente = await prisma.tm_pref_notif.findUnique({
+      where: { pnf_usuario: usu_codi }
+    });
+
+    const pick = (key, def) =>
+      typeof data[key] === 'boolean' ? data[key] : (existente?.[key] ?? def);
+
+    const payload = {
+      alertas_correo: pick('alertas_correo', true),
+      alertas_push: pick('alertas_push', true),
+      resumen_diario: pick('resumen_diario', true),
+      recordatorios_sesiones: pick('recordatorios_sesiones', true),
+      novedades: pick('novedades', false),
+      pnf_actua: new Date()
+    };
+
+    const pref = await prisma.tm_pref_notif.upsert({
+      where: { pnf_usuario: usu_codi },
+      update: payload,
+      create: { pnf_usuario: usu_codi, ...payload }
+    });
+
+    return {
+      alertas_correo: pref.alertas_correo,
+      alertas_push: pref.alertas_push,
+      resumen_diario: pref.resumen_diario,
+      recordatorios_sesiones: pref.recordatorios_sesiones,
+      novedades: pref.novedades
+    };
   }
 }
 

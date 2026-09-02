@@ -35,4 +35,8 @@ router.get('/me', authenticate, authController.getMe);
 // PUT /api/auth/me (Actualizar perfil del usuario)
 router.put('/me', authenticate, validateSchema(schemas.updateMeSchema), authController.updateMe);
 
+// GET/PUT /api/auth/notificaciones (Preferencias de notificación del usuario)
+router.get('/notificaciones', authenticate, authController.getNotificaciones);
+router.put('/notificaciones', authenticate, authController.updateNotificaciones);
+
 module.exports = router;

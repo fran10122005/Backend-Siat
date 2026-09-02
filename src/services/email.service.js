@@ -12,6 +12,8 @@ class EmailService {
     
     const fullContext = {
       ...context,
+      systemName: 'Sistema Inteligente de Acompañamiento Terapéutico',
+      logoUrl: process.env.SIAT_LOGO_URL || context?.logoUrl || '',
       currentYear: new Date().getFullYear()
     };
 
@@ -19,6 +21,8 @@ class EmailService {
     
     const compiledBase = handlebars.compile(baseSource)({
       body: compiledTemplate,
+      systemName: fullContext.systemName,
+      logoUrl: fullContext.logoUrl,
       currentYear: fullContext.currentYear
     });
 

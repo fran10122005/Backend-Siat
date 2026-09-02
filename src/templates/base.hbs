@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="x-apple-disable-message-reformatting">
-  <title>SIAT</title>
+  <title>SIAT — Sistema Inteligente de Acompañamiento Terapéutico</title>
   <style>
     body {
       margin: 0;
       padding: 0;
-      background-color: #eef2f7;
-      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
-      color: #1e293b;
+      background-color: #f1f5f9;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+      color: #0f172a;
       -webkit-font-smoothing: antialiased;
     }
     .container {
@@ -20,74 +20,99 @@
       background-color: #ffffff;
       border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 8px 24px rgba(15, 42, 74, 0.08);
+      box-shadow: 0 10px 25px -5px rgba(11, 45, 82, 0.12), 0 8px 10px -6px rgba(11, 45, 82, 0.08);
+      border: 1px solid #e2e8f0;
     }
     .header {
-      background: linear-gradient(135deg, #0b2d52 0%, #14406e 55%, #155e75 100%);
-      padding: 34px 28px 28px;
+      background: linear-gradient(135deg, #0b2d52 0%, #1e3a8a 60%, #0284c7 100%);
+      padding: 36px 28px 28px;
       text-align: center;
+      border-bottom: 3px solid #0ea5e9;
+    }
+    .brand-container {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
     .logo-badge {
       display: inline-block;
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
       border: 1px solid rgba(255, 255, 255, 0.35);
-      border-radius: 10px;
-      padding: 8px 22px;
-      font-size: 28px;
+      border-radius: 12px;
+      padding: 8px 24px;
+      font-size: 26px;
       font-weight: 800;
       letter-spacing: 4px;
       color: #ffffff;
       line-height: 1.2;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+    .logo-img {
+      max-height: 48px;
+      max-width: 220px;
+      object-fit: contain;
+      vertical-align: middle;
     }
     .tagline {
-      margin-top: 10px;
-      font-size: 12px;
-      letter-spacing: 2px;
+      margin-top: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.8px;
       text-transform: uppercase;
-      color: #9ad0e8;
+      color: #93c5fd;
     }
     .body {
       padding: 36px 32px;
       line-height: 1.65;
       font-size: 15px;
+      color: #1e293b;
     }
     .footer {
       background-color: #f8fafc;
-      padding: 22px 24px;
+      padding: 24px 28px;
       text-align: center;
       font-size: 12px;
-      color: #94a3b8;
+      color: #64748b;
       border-top: 1px solid #e2e8f0;
       line-height: 1.7;
+    }
+    .footer-org {
+      font-weight: 600;
+      color: #0b2d52;
+      margin-bottom: 4px;
     }
     .footer a {
       color: #0ea5e9;
       text-decoration: none;
     }
     @media (max-width: 620px) {
-      .body { padding: 26px 20px; }
-      .header { padding: 26px 16px 22px; }
-      .container { margin: 16px; }
+      .body { padding: 28px 20px; }
+      .header { padding: 28px 20px 22px; }
+      .container { margin: 12px; border-radius: 12px; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <!--
-        EmailJS no soporta adjuntos CID. Para mostrar el logo real,
-        sube Logo.png a Cloudinary y reemplaza el contenido de .logo-badge
-        por: <img src="https://res.cloudinary.com/..." alt="SIAT" style="height:44px;"/>
-      -->
-      <div class="logo-badge">SIAT</div>
-      <div class="tagline">Sistema de Inteligencia Artificial Temprana</div>
+      {{#if logoUrl}}
+        <img src="{{logoUrl}}" alt="SIAT Logo" class="logo-img" />
+      {{else}}
+        <div class="logo-badge">
+          SIAT
+        </div>
+      {{/if}}
+      <div class="tagline">Sistema Inteligente de Acompañamiento Terapéutico</div>
     </div>
     <div class="body">
       {{{body}}}
     </div>
     <div class="footer">
-      <p style="margin:0 0 6px 0;">&copy; {{currentYear}} SIAT &mdash; Sistema de Inteligencia Artificial Temprana. Todos los derechos reservados.</p>
-      <p style="margin:0;">Este es un correo generado automáticamente. Por favor, no respondas a este mensaje.</p>
+      <p class="footer-org">Fundación Una Luz Para el Autismo &bull; SIAT</p>
+      <p style="margin:0 0 6px 0;">&copy; {{currentYear}} SIAT &mdash; Sistema Inteligente de Acompañamiento Terapéutico. Todos los derechos reservados.</p>
+      <p style="margin:0; font-size:11px; color:#94a3b8;">Este es un mensaje automático de la plataforma clínica. Por favor, no respondas directamente a este correo.</p>
     </div>
   </div>
 </body>

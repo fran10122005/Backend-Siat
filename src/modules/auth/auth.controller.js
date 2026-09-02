@@ -32,6 +32,16 @@ const updateMe = catchAsync(async (req, res) => {
   res.json({ success: true, message: 'Perfil actualizado exitosamente', data: result });
 });
 
+const getNotificaciones = catchAsync(async (req, res) => {
+  const result = await authService.getNotificaciones(req.user.usu_codi);
+  res.json({ success: true, data: result });
+});
+
+const updateNotificaciones = catchAsync(async (req, res) => {
+  const result = await authService.updateNotificaciones(req.user.usu_codi, req.body);
+  res.json({ success: true, message: 'Preferencias de notificación actualizadas', data: result });
+});
+
 const forgotPassword = catchAsync(async (req, res) => {
   const { email } = req.body;
   await authService.forgotPassword(email);
@@ -61,6 +71,8 @@ module.exports = {
   registerEsp, 
   getMe, 
   updateMe,
+  getNotificaciones,
+  updateNotificaciones,
   forgotPassword, 
   resetPassword, 
   getInvitationDetails, 

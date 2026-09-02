@@ -44,6 +44,7 @@ model tm_usuar {
   tm_admin  tm_admin?
   tr_audito tr_audito[]
   tm_passkeys tm_passkeys[]
+  tm_pref_notif tm_pref_notif?
 }
 
   model tm_insti {
@@ -518,4 +519,19 @@ model tm_conse {
 
   tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
   tm_repre tm_repre @relation(fields: [rep_cod], references: [rep_cod])
+}
+
+model tm_pref_notif {
+  pnf_usuario           String    @id @db.VarChar(10)
+  alertas_correo        Boolean   @default(true) @map("ale_corr")
+  alertas_push          Boolean   @default(true) @map("ale_push")
+  resumen_diario        Boolean   @default(true) @map("res_diar")
+  recordatorios_sesiones Boolean  @default(true) @map("rec_sesi")
+  novedades             Boolean   @default(false) @map("noved")
+  pnf_creac             DateTime  @default(now()) @db.Timestamp()
+  pnf_actua             DateTime? @db.Timestamp()
+
+  tm_usuar tm_usuar @relation(fields: [pnf_usuario], references: [usu_codi])
+
+  @@map("tm_pref_notif")
 }

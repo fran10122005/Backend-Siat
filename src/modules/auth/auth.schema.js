@@ -68,6 +68,7 @@ const updateMeSchema = z.object({
   body: z.object({
     nomb: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(50, 'El nombre no puede exceder 50 caracteres').optional(),
     apel: z.string().min(2, 'El apellido debe tener al menos 2 caracteres').max(50, 'El apellido no puede exceder 50 caracteres').optional(),
+    email: z.string().email('Debe ser un correo electrónico válido').max(50).optional(),
     telf: z.string().max(15, 'El teléfono no puede exceder 15 caracteres').optional().nullable(),
     licencia: z.string().max(20, 'La licencia no puede exceder 20 caracteres').optional().nullable(),
     tdoc: z.enum(['V', 'E', 'P'], 'El tipo de documento debe ser V, E o P').optional(),
