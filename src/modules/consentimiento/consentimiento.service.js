@@ -80,6 +80,21 @@ class ConsentimientoService {
       }
     });
   }
+
+  async historialPorNino(nin_codi) {
+    return prisma.tm_conse.findMany({
+      where: { nin_codi },
+      orderBy: { con_fech: 'desc' },
+      include: {
+        tm_ninos: {
+          select: { nin_nomb: true, nin_apel: true }
+        },
+        tm_repre: {
+          select: { rep_nomb: true, rep_apel: true, rep_rela: true }
+        }
+      }
+    });
+  }
 }
 
 module.exports = new ConsentimientoService();

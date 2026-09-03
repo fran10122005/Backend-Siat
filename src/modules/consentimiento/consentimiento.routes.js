@@ -29,4 +29,11 @@ router.get(
   consentimientoController.listar
 );
 
+// GET /api/consentimiento/historial
+router.get(
+  '/historial',
+  authenticate,
+  consentimientoController.historial
+);
+
 module.exports = router;
