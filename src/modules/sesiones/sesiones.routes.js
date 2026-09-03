@@ -8,13 +8,15 @@ const schemas = require('./sesiones.schema');
 
 // Roles con permisos de gestión (crear/editar/eliminar actividades, categorías y asignaciones)
 const ROLES_GESTION = ['ROL_ADM', 'ROL_ESP', 'ROL_DIR'];
+// Roles con permisos de ejecución de terapia (iniciar/cerrar sesiones y actualizar estado)
+const ROLES_EJECUCION = ['ROL_ADM', 'ROL_ESP', 'ROL_DIR', 'ROL_REP'];
 
 // Todas las rutas requieren autenticación
 router.use(authenticate);
 
 // ========================== SESIONES (TERAPIAS) ==========================
-router.post('/iniciar', validateSchema(schemas.iniciarSesionSchema), requireRole(ROLES_GESTION), sesionesController.iniciarSesion);
-router.put('/:ses_codi/cerrar', validateSchema(schemas.cerrarSesionSchema), requireRole(ROLES_GESTION), sesionesController.cerrarSesion);
+router.post('/iniciar', validateSchema(schemas.iniciarSesionSchema), requireRole(ROLES_EJECUCION), sesionesController.iniciarSesion);
+router.put('/:ses_codi/cerrar', validateSchema(schemas.cerrarSesionSchema), requireRole(ROLES_EJECUCION), sesionesController.cerrarSesion);
 router.get('/ninos/:nin_codi/sesiones', validateSchema(schemas.obtenerSesionesSchema), sesionesController.listarSesionesNino);
 
 // ========================== CATEGORÍAS ==========================
@@ -33,7 +35,7 @@ router.delete('/actividades/:act_codi', validateSchema(schemas.eliminarActividad
 // ========================== ASIGNACIÓN DE ACTIVIDADES ==========================
 router.post('/actividades/:act_codi/asignar/:nin_codi', validateSchema(schemas.asignarActividadSchema), requireRole(ROLES_GESTION), sesionesController.asignarActividad);
 router.get('/ninos/:nin_codi/asignaciones', validateSchema(schemas.listarAsignacionesSchema), sesionesController.listarAsignacionesNino);
-router.patch('/asignaciones/:acn_codi/estado', validateSchema(schemas.cambiarEstadoAsignacionSchema), requireRole(ROLES_GESTION), sesionesController.cambiarEstadoAsignacion);
+router.patch('/asignaciones/:acn_codi/estado', validateSchema(schemas.cambiarEstadoAsignacionSchema), requireRole(ROLES_EJECUCION), sesionesController.cambiarEstadoAsignacion);
 router.delete('/asignaciones/:acn_codi', validateSchema(schemas.desasignarActividadSchema), requireRole(ROLES_GESTION), sesionesController.desasignarActividad);
 
 module.exports = router;

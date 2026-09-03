@@ -21,9 +21,26 @@ class SesionesService {
 
     let disCodi = data.dis_codi;
     if (!disCodi) {
-      const defaultDevice = await prisma.tm_dispo.findFirst();
-      if (!defaultDevice) throw new AppError('No hay dispositivos registrados. Asigne un dispositivo primero.', 400);
-      disCodi = defaultDevice.dis_codi;
+      const defaultDevice = await prisma.tm_dispo.findFirst({
+        where: { OR: [{ nin_codi: data.nin_codi }, { ins_codi: nino.ins_codi }] }
+      }) || await prisma.tm_dispo.findFirst();
+
+      if (!defaultDevice) {
+        const virtualDevice = await prisma.tm_dispo.create({
+          data: {
+            dis_codi: generateId('D'),
+            ins_codi: nino.ins_codi,
+            nin_codi: nino.nin_codi,
+            dis_sral: `DEV-VIRTUAL-${Date.now()}`,
+            dis_vers: 'v1.0-sim',
+            dis_iplo: '127.0.0.1',
+            dis_stdo: 'Activo'
+          }
+        });
+        disCodi = virtualDevice.dis_codi;
+      } else {
+        disCodi = defaultDevice.dis_codi;
+      }
     } else {
       const dispositivo = await prisma.tm_dispo.findUnique({ where: { dis_codi: disCodi } });
       if (!dispositivo) throw new AppError('Dispositivo no encontrado', 404);
