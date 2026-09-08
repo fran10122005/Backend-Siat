@@ -32,9 +32,28 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api', globalLimiter);
 
+// Documentación Swagger API
+const setupSwagger = require('./config/swagger');
+setupSwagger(app);
+
 // Rutas base
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Backend SIAT funcionando correctamente' });
+const prisma = require('./config/db');
+app.get('/api/health', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).json({
+      status: 'ok',
+      db: 'connected',
+      timestamp: new Date().toISOString(),
+      message: 'Backend SIAT funcionando correctamente'
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      db: 'disconnected',
+      error: err.message
+    });
+  }
 });
 
 const authRoutes = require('./modules/auth/auth.routes');

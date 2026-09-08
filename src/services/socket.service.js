@@ -1,0 +1,179 @@
+const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
+const env = require('../config/env');
+const prisma = require('../config/db');
+const { isOriginAllowed } = require('../middleware/cors');
+const logger = require('../utils/logger');
+
+const socketsByUser = new Map(); // usu_codi → Set<socketId>
+
+function registerSocket(socket) {
+  const usuCodi = socket.user.usu_codi;
+  const current = socketsByUser.get(usuCodi) || new Set();
+  current.add(socket.id);
+  socketsByUser.set(usuCodi, current);
+}
+
+function unregisterSocket(socket) {
+  const usuCodi = socket.user.usu_codi;
+  const current = socketsByUser.get(usuCodi);
+  if (!current) return;
+  current.delete(socket.id);
+  if (current.size === 0) socketsByUser.delete(usuCodi);
+}
+
+function closePreviousSockets(io, usuCodi, keepId) {
+  const current = socketsByUser.get(usuCodi);
+  if (!current) return;
+  for (const socketId of current) {
+    if (socketId === keepId) continue;
+    const old = io.sockets.sockets.get(socketId);
+    if (old) {
+      logger.info(`🧹 Cerrando socket huérfano ${socketId} del usuario ${usuCodi}`);
+      old.disconnect(true);
+    }
+  }
+}
+
+const childRoom = (ninCodi) => `child:${ninCodi}`;
+
+async function roomsForUser(usu_codi, rol_codi) {
+  const rooms = [];
+  if (rol_codi === 'ROL_REP') {
+    const repre = await prisma.tm_repre.findUnique({ where: { usu_codi } });
+    if (repre && repre.nin_codi) rooms.push(childRoom(repre.nin_codi));
+  } else if (rol_codi === 'ROL_ESP') {
+    const espec = await prisma.tm_espec.findUnique({
+      where: { usu_codi },
+      include: { tc_asign: true }
+    });
+    if (espec && espec.tc_asign) {
+      espec.tc_asign.forEach(asign => rooms.push(childRoom(asign.nin_codi)));
+    }
+  } else if (rol_codi === 'ROL_ADM') {
+    const ninos = await prisma.tm_ninos.findMany({ select: { nin_codi: true } });
+    ninos.forEach(n => rooms.push(childRoom(n.nin_codi)));
+  }
+  return rooms;
+}
+
+async function canAccessChild(usu_codi, rol_codi, nin_codi) {
+  if (rol_codi === 'ROL_ADM') {
+    const nino = await prisma.tm_ninos.findUnique({ where: { nin_codi } });
+    return Boolean(nino);
+  }
+  if (rol_codi === 'ROL_REP') {
+    const repre = await prisma.tm_repre.findUnique({ where: { usu_codi } });
+    return Boolean(repre && repre.nin_codi === nin_codi);
+  }
+  if (rol_codi === 'ROL_ESP') {
+    const espec = await prisma.tm_espec.findUnique({
+      where: { usu_codi },
+      include: { tc_asign: true }
+    });
+    return Boolean(espec && espec.tc_asign.some(a => a.nin_codi === nin_codi));
+  }
+  return false;
+}
+
+async function syncRooms(socket) {
+  const { usu_codi, rol_codi } = socket.user;
+  try {
+    const rooms = await roomsForUser(usu_codi, rol_codi);
+    for (const room of socket.rooms) {
+      if (room !== socket.id) socket.leave(room);
+    }
+    for (const room of rooms) {
+      socket.join(room);
+      logger.info(`🔌 ${rol_codi} ${usu_codi} unido a sala ${room}`);
+    }
+    socket.emit('rooms_updated', { rooms });
+  } catch (err) {
+    logger.error('Error al sincronizar salas de Socket.io:', { error: err.message });
+  }
+}
+
+let ioInstance = null;
+
+function initSocketServer(server, app) {
+  const io = new Server(server, {
+    pingInterval: 25000,
+    pingTimeout: 20000,
+    cors: {
+      origin: (origin, callback) => {
+        if (isOriginAllowed(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
+    }
+  });
+
+  if (app) {
+    app.set('io', io);
+  }
+
+  io.use((socket, next) => {
+    const token = socket.handshake.auth.token || socket.handshake.query.token;
+    if (!token) {
+      return next(new Error('Error de autenticación: Token no provisto'));
+    }
+    try {
+      const decoded = jwt.verify(token, env.JWT_SECRET);
+      socket.user = decoded;
+      next();
+    } catch (err) {
+      return next(new Error('Error de autenticación: Token inválido o expirado'));
+    }
+  });
+
+  io.on('connection', async (socket) => {
+    logger.info(`🔌 Cliente conectado: ${socket.id} (Usuario: ${socket.user.usu_codi}, Rol: ${socket.user.rol_codi})`);
+
+    registerSocket(socket);
+    closePreviousSockets(io, socket.user.usu_codi, socket.id);
+
+    await syncRooms(socket);
+
+    socket.on('join_child', async (nin_codi, ack) => {
+      try {
+        const allowed = await canAccessChild(socket.user.usu_codi, socket.user.rol_codi, nin_codi);
+        if (!allowed) {
+          if (typeof ack === 'function') ack({ ok: false, error: 'Sin permiso para observar este niño' });
+          return;
+        }
+        socket.join(childRoom(nin_codi));
+        if (typeof ack === 'function') ack({ ok: true, room: childRoom(nin_codi) });
+      } catch (err) {
+        if (typeof ack === 'function') ack({ ok: false, error: err.message });
+      }
+    });
+
+    socket.on('leave_child', (nin_codi) => {
+      socket.leave(childRoom(nin_codi));
+    });
+
+    socket.on('resync_rooms', async () => {
+      await syncRooms(socket);
+    });
+
+    socket.on('disconnect', () => {
+      unregisterSocket(socket);
+      logger.info(`🔌 Cliente desconectado: ${socket.id}`);
+    });
+  });
+
+  ioInstance = io;
+  return io;
+}
+
+function getIO() {
+  return ioInstance;
+}
+
+module.exports = {
+  initSocketServer,
+  getIO
+};

@@ -7,7 +7,12 @@
     "start": "node scripts/ensure-migrations.js && prisma migrate deploy && node index.js",
     "dev": "nodemon index.js",
     "test": "jest --forceExit",
+    "simulator": "node scripts/wearable_simulator.js",
+    "seed": "node prisma/seed.js",
     "postinstall": "prisma generate"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "keywords": [],
   "author": "",

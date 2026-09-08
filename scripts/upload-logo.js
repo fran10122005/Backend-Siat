@@ -27,7 +27,7 @@ cloudinary.config({
   secure: true
 });
 
-const logoPath = path.join(__dirname, '../src/templates/Logo.png');
+const logoPath = path.join(__dirname, '../src/assets/images/logo.png');
 
 console.log('\n☁️  Subiendo logo a Cloudinary...\n');
 

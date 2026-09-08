@@ -208,7 +208,6 @@ async function authenticate() {
 }
 
 function calculateStressIndex(bpm, mov) {
-  // Simula la lógica de estrés: a mayor pulso y menor movimiento, más estrés
   if (bpm <= 65) return 0;
   const ratio = Math.min(1, Math.max(0, (bpm - 65) / 45));
   const movRatio = Math.min(1, Math.max(0, mov / 8));
@@ -220,7 +219,6 @@ function calculateStressIndex(bpm, mov) {
 }
 
 async function transmitTelemetry() {
-  // Sincronizar estado de simulación con el servidor backend
   try {
     const syncRes = await fetch(`${BACKEND_URL}/monitoreo/simular-estado`, {
       headers: {
@@ -236,18 +234,15 @@ async function transmitTelemetry() {
       }
     }
   } catch (err) {
-    // Falla silenciosa para evitar spam en consola si se interrumpe la red
   }
 
   telemetryCounter++;
   let bpm, mov;
 
   if (isCrisisMode) {
-    // Crisis: BPM elevado y poco movimiento de juego
     bpm = Math.floor(Math.random() * (132 - 120 + 1) + 120);
     mov = Number((Math.random() * (1.5 - 0.4) + 0.4).toFixed(1));
   } else {
-    // Calma: BPM en reposo y movimiento regular
     bpm = Math.floor(Math.random() * (82 - 70 + 1) + 70);
     mov = Number((Math.random() * (2.8 - 0.8) + 0.8).toFixed(1));
   }
@@ -306,7 +301,6 @@ function startStreaming() {
   transmitInterval = setInterval(transmitTelemetry, 10000);
 }
 
-// Configurar lectura de consola interactiva (Raw nativo directo)
 if (process.stdin.isTTY || typeof process.stdin.setRawMode === 'function') {
   try {
     process.stdin.setRawMode(true);
@@ -330,7 +324,6 @@ const handleInput = async (cmd) => {
         body: JSON.stringify({ estado: 'CRISIS' })
       });
     } catch (err) {
-      // Ignorar fallas silenciosas en la red durante la simulación de entrada
     }
   } else if (cmd === 'c') {
     isCrisisMode = false;
@@ -345,7 +338,6 @@ const handleInput = async (cmd) => {
         body: JSON.stringify({ estado: 'CALMA' })
       });
     } catch (err) {
-      // Ignorar fallas silenciosas
     }
   } else if (cmd === 'q') {
     console.log('\n🔌 Apagando simulador y desconectando hardware. ¡Hasta luego!');
@@ -355,25 +347,21 @@ const handleInput = async (cmd) => {
   }
 };
 
-// Listener directo sobre el flujo de datos para máxima compatibilidad
 process.stdin.resume();
 process.stdin.on('data', (buffer) => {
   const str = buffer.toString('utf8').toLowerCase();
   
-  // Capturar Ctrl+C (Hex 03)
   if (str.includes('\u0003')) {
     handleInput('q');
     return;
   }
   
-  // Limpiar y tomar el comando
   const cmd = str.trim();
   if (cmd === 's' || cmd === 'c' || cmd === 'q') {
     handleInput(cmd);
   }
 });
 
-// Arrancar proceso
 (async () => {
   await setupDatabaseState();
   await authenticate();

@@ -27,7 +27,7 @@ cuenta, el servicio, la plantilla y completar las variables de entorno.
 
 1. Ve a **"Email Templates"** → **"+ Create New Template"**.
 2. En la pestaña **"Content"**, borra el contenido y pega **TODO** el archivo
-   [`emailjs/EMAILJS_DASHBOARD_TEMPLATE.html`](emailjs/EMAILJS_DASHBOARD_TEMPLATE.html).
+   [`docs/emailjs/EMAILJS_DASHBOARD_TEMPLATE.html`](EMAILJS_DASHBOARD_TEMPLATE.html).
    El contenido inyecta el HTML compilado por el backend con **triple llave**
    `{{{html_content}}}`.
    > ⚠️ **Importante:** la variable debe estar **envuelta en una estructura HTML**
@@ -99,7 +99,7 @@ El diseño vive en el backend, versionado y sin depender del dashboard:
 
 - Los placeholders usan sintaxis Handlebars `{{variable}}`.
 - El **logo** actual es un wordmark de texto (los adjuntos CID no funcionan en EmailJS).
-  Para usar el logo real, sube `src/templates/Logo.png` a Cloudinary y pega su URL en `base.hbs`.
+  Para usar el logo real, sube `src/assets/images/logo.png` a Cloudinary y pega su URL en `base.hbs`.
 
 ## 8. Notas de seguridad
 
