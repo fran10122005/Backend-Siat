@@ -45,17 +45,17 @@ const getHealth = catchAsync(async (req, res) => {
 });
 
 const listNinos = catchAsync(async (req, res) => {
-  const ninos = await adminService.listNinos();
+  const ninos = await adminService.listNinos(req.query);
   res.status(200).json({ data: ninos });
 });
 
 const listEspecialistas = catchAsync(async (req, res) => {
-  const especialistas = await adminService.listEspecialistas();
+  const especialistas = await adminService.listEspecialistas(req.query);
   res.status(200).json({ data: especialistas });
 });
 
 const listAsignaciones = catchAsync(async (req, res) => {
-  const asignaciones = await adminService.listAsignaciones();
+  const asignaciones = await adminService.listAsignaciones(req.query);
   res.status(200).json({ data: asignaciones });
 });
 
@@ -134,7 +134,7 @@ const toggleEspecialidad = catchAsync(async (req, res) => {
 });
 
 const listUsers = catchAsync(async (req, res) => {
-  const users = await adminService.listUsers();
+  const users = await adminService.listUsers(req.query);
   res.status(200).json({ data: users });
 });
 

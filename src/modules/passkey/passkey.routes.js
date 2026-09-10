@@ -5,6 +5,8 @@ const { validateSchema } = require('../../middleware/validate.middleware');
 const passkeyController = require('./passkey.controller');
 const passkeySchemas = require('./passkey.schema');
 
+const { authLimiter } = require('../../middleware/rateLimiter');
+
 // Gestión de credenciales (requiere sesión)
 router.get('/passkey', authenticate, passkeyController.listPasskeys);
 router.delete('/passkey/:pk_id', authenticate, passkeyController.deletePasskey);
@@ -13,8 +15,8 @@ router.delete('/passkey/:pk_id', authenticate, passkeyController.deletePasskey);
 router.post('/passkey/register/start', authenticate, passkeyController.startRegistration);
 router.post('/passkey/register/complete', authenticate, validateSchema(passkeySchemas.completeRegistrationSchema), passkeyController.completeRegistration);
 
-// Acceso rápido (público)
-router.post('/passkey/login/start', validateSchema(passkeySchemas.startLoginSchema), passkeyController.startLogin);
-router.post('/passkey/login/complete', validateSchema(passkeySchemas.completeLoginSchema), passkeyController.completeLogin);
+// Acceso rápido (público con rate limit)
+router.post('/passkey/login/start', authLimiter, validateSchema(passkeySchemas.startLoginSchema), passkeyController.startLogin);
+router.post('/passkey/login/complete', authLimiter, validateSchema(passkeySchemas.completeLoginSchema), passkeyController.completeLogin);
 
 module.exports = router;

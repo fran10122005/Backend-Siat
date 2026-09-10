@@ -10,6 +10,7 @@ router.post('/soap', authenticate, especialistaController.crearSoap);
 // Indicaciones médicas
 router.get('/indicaciones/:nin_codi', authenticate, especialistaController.listarIndicaciones);
 router.post('/indicaciones', authenticate, especialistaController.crearIndicacion);
+router.post('/indicaciones/:nin_codi', authenticate, especialistaController.crearIndicacion);
 router.patch('/indicaciones/:ind_codi/leer', authenticate, especialistaController.marcarIndicacionLeida);
 
 // Incidentes conductuales

@@ -185,9 +185,42 @@ const getHistorialCompleto = catchAsync(async (req, res) => {
     orderBy: { bit_fech: 'desc' }
   });
 
+  const indicaciones = await prisma.tr_indic.findMany({
+    where: { nin_codi },
+    include: {
+      tm_espec: {
+        select: {
+          esp_nomb: true,
+          esp_apel: true,
+          esp_espe: true
+        }
+      }
+    },
+    orderBy: { ind_crea: 'desc' }
+  });
+
+  // Mapear indicaciones clínicas de tr_indic al formato de reportes para máxima retrocompatibilidad
+  const mappedIndicaciones = indicaciones.map((ind) => ({
+    rpt_cod: ind.ind_codi,
+    rpt_nin: ind.nin_codi,
+    rpt_esp: ind.esp_codi,
+    rpt_inpe: ind.ind_crea,
+    rpt_finp: ind.ind_vige || ind.ind_crea,
+    rpt_sesi: 0,
+    rpt_meta: 100,
+    rpt_nota: `[${ind.ind_tipo} - ${ind.ind_area}] ${ind.ind_desc}`,
+    rpt_nube: !ind.ind_leid,
+    tm_espec: ind.tm_espec
+  }));
+
+  const allReportes = [...reportes, ...mappedIndicaciones].sort(
+    (a, b) => new Date(b.rpt_inpe) - new Date(a.rpt_inpe)
+  );
+
   res.status(200).json({
     data: {
-      reportes,
+      reportes: allReportes,
+      indicaciones,
       sesiones,
       bitacoras
     }

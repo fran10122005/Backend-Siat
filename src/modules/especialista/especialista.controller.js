@@ -59,13 +59,16 @@ const listarIndicaciones = catchAsync(async (req, res) => {
 });
 
 const crearIndicacion = catchAsync(async (req, res) => {
-  const { nin_codi, ind_tipo, ind_area, ind_frec, ind_dura, ind_prio, ind_vige, ind_desc } = req.body;
+  const nin_codi = req.params.nin_codi || req.body.nin_codi || req.body.id_ninos;
+  const { ind_tipo, ind_area, ind_frec, ind_dura, ind_prio, ind_vige } = req.body;
+  const ind_desc = req.body.ind_desc || req.body.com_tend || req.body.nota || req.body.descripcion;
+
   const especialista = await getEspecialista(req.user.usu_codi);
   if (!especialista) {
     return res.status(404).json({ error: 'Especialista no encontrado o sin permisos' });
   }
-  if (!nin_codi || !ind_tipo || !ind_area || !ind_frec || !ind_prio || !ind_desc) {
-    return res.status(400).json({ error: 'Tipo, área, frecuencia, prioridad y descripción son requeridos' });
+  if (!nin_codi || !ind_desc) {
+    return res.status(400).json({ error: 'El código del paciente (nin_codi) y la descripción de la indicación son requeridos' });
   }
 
   const ind_codi = 'IND_' + crypto.randomBytes(3).toString('hex').toUpperCase();
@@ -74,15 +77,15 @@ const crearIndicacion = catchAsync(async (req, res) => {
       ind_codi: ind_codi.substring(0, 10),
       nin_codi,
       esp_codi: especialista.esp_codi,
-      ind_tipo,
-      ind_area,
-      ind_frec,
+      ind_tipo: ind_tipo || 'Terapéutica',
+      ind_area: ind_area || 'General',
+      ind_frec: ind_frec || 'Diaria',
       ind_dura: ind_dura || null,
-      ind_prio,
+      ind_prio: ind_prio || 'Media',
       ind_vige: ind_vige ? new Date(ind_vige) : null,
       ind_desc
     },
-    include: { tm_espec: { select: { esp_nomb: true, esp_apel: true } } }
+    include: { tm_espec: { select: { esp_nomb: true, esp_apel: true, esp_espe: true } } }
   });
 
   res.status(201).json({ status: 'success', data: indicacion });

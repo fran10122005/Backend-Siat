@@ -47,18 +47,144 @@ class AdminService {
     });
   }
 
-  async listNinos() {
-    return await prisma.tm_ninos.findMany({
-      include: {
-        tm_repre_ninos: { include: { tm_repre: true } }
+  async listNinos(queryParams = {}) {
+    const {
+      search,
+      genero,
+      nin_gner,
+      nivel,
+      nin_nivd,
+      fechaDesde,
+      desde,
+      fechaHasta,
+      hasta
+    } = queryParams;
+
+    const where = {};
+
+    if (search && search.trim()) {
+      const q = search.trim();
+      where.OR = [
+        { nin_nomb: { contains: q, mode: 'insensitive' } },
+        { nin_apel: { contains: q, mode: 'insensitive' } },
+        { nin_diag: { contains: q, mode: 'insensitive' } },
+        { nin_nivd: { contains: q, mode: 'insensitive' } },
+        {
+          tm_repre_ninos: {
+            some: {
+              tm_repre: {
+                OR: [
+                  { rep_nomb: { contains: q, mode: 'insensitive' } },
+                  { rep_apel: { contains: q, mode: 'insensitive' } },
+                  { rep_cedu: { contains: q, mode: 'insensitive' } }
+                ]
+              }
+            }
+          }
+        }
+      ];
+    }
+
+    const targetGner = genero || nin_gner;
+    if (targetGner && targetGner !== 'all' && targetGner !== 'todos') {
+      where.nin_gner = targetGner;
+    }
+
+    const targetNivel = nivel || nin_nivd;
+    if (targetNivel && targetNivel !== 'all' && targetNivel !== 'todos') {
+      where.nin_nivd = { contains: targetNivel, mode: 'insensitive' };
+    }
+
+    const startDate = fechaDesde || desde;
+    const endDate = fechaHasta || hasta;
+    if (startDate || endDate) {
+      where.nin_ingr = {};
+      if (startDate) where.nin_ingr.gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.nin_ingr.lte = end;
       }
+    }
+
+    return await prisma.tm_ninos.findMany({
+      where,
+      include: {
+        tm_repre_ninos: { include: { tm_repre: true } },
+        tc_asign: { include: { tm_espec: true } }
+      },
+      orderBy: { nin_ingr: 'desc' }
     });
   }
 
-  async listEspecialistas() {
+  async listEspecialistas(queryParams = {}) {
+    const {
+      search,
+      especialidad,
+      esc_codi,
+      estado,
+      usu_estd,
+      activo,
+      genero,
+      esp_gner,
+      fechaDesde,
+      desde,
+      fechaHasta,
+      hasta
+    } = queryParams;
+
+    const where = {};
+
+    if (search && search.trim()) {
+      const q = search.trim();
+      where.OR = [
+        { esp_nomb: { contains: q, mode: 'insensitive' } },
+        { esp_apel: { contains: q, mode: 'insensitive' } },
+        { esp_licencia: { contains: q, mode: 'insensitive' } },
+        { esp_telf: { contains: q, mode: 'insensitive' } },
+        { tm_usuar: { usu_crro: { contains: q, mode: 'insensitive' } } }
+      ];
+    }
+
+    const targetEsc = especialidad || esc_codi;
+    if (targetEsc && targetEsc !== 'all' && targetEsc !== 'todas') {
+      where.esc_codi = targetEsc;
+    }
+
+    const rawEstado = estado !== undefined ? estado : (usu_estd !== undefined ? usu_estd : activo);
+    if (rawEstado !== undefined && rawEstado !== '' && rawEstado !== 'all' && rawEstado !== 'todos') {
+      const isActivo = String(rawEstado).toLowerCase() === 'true' || String(rawEstado).toLowerCase() === 'activo' || rawEstado === '1';
+      where.tm_usuar = {
+        ...(where.tm_usuar || {}),
+        usu_estd: isActivo
+      };
+    }
+
+    const targetGner = genero || esp_gner;
+    if (targetGner && targetGner !== 'all' && targetGner !== 'todos') {
+      where.esp_gner = targetGner;
+    }
+
+    const startDate = fechaDesde || desde;
+    const endDate = fechaHasta || hasta;
+    if (startDate || endDate) {
+      const dateFilter = {};
+      if (startDate) dateFilter.gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        dateFilter.lte = end;
+      }
+      where.tm_usuar = {
+        ...(where.tm_usuar || {}),
+        usu_crea: dateFilter
+      };
+    }
+
     return await prisma.tm_espec.findMany({
+      where,
       include: {
-        tm_usuar: { select: { usu_crro: true, usu_estd: true } },
+        tm_usuar: { select: { usu_crro: true, usu_estd: true, usu_crea: true } },
         tm_insti: true,
         tm_especi: true,
         _count: {
@@ -66,12 +192,33 @@ class AdminService {
             tc_asign: { where: { asi_stdo: 'Activo' } }
           }
         }
-      }
+      },
+      orderBy: { esp_nomb: 'asc' }
     });
   }
 
-  async listAsignaciones() {
+  async listAsignaciones(queryParams = {}) {
+    const { search, estado, asi_stdo } = queryParams;
+
+    const where = {};
+
+    const targetEstado = estado || asi_stdo;
+    if (targetEstado && targetEstado !== 'all' && targetEstado !== 'todos') {
+      where.asi_stdo = targetEstado;
+    }
+
+    if (search && search.trim()) {
+      const q = search.trim();
+      where.OR = [
+        { tm_ninos: { nin_nomb: { contains: q, mode: 'insensitive' } } },
+        { tm_ninos: { nin_apel: { contains: q, mode: 'insensitive' } } },
+        { tm_espec: { esp_nomb: { contains: q, mode: 'insensitive' } } },
+        { tm_espec: { esp_apel: { contains: q, mode: 'insensitive' } } }
+      ];
+    }
+
     return await prisma.tc_asign.findMany({
+      where,
       include: {
         tm_ninos: true,
         tm_espec: true
@@ -335,8 +482,136 @@ class AdminService {
     });
   }
 
-  async listUsers() {
+  async listUsers(queryParams = {}) {
+    const {
+      search,
+      rol,
+      rol_codi,
+      estado,
+      usu_estd,
+      activo,
+      parentesco,
+      rep_rela,
+      generoNino,
+      nin_gner,
+      nivelDiagnostico,
+      nin_nivd,
+      tienePacientes,
+      con_pacientes,
+      fechaDesde,
+      desde,
+      fechaHasta,
+      hasta
+    } = queryParams;
+
+    const where = {};
+
+    const targetRol = rol || rol_codi;
+    if (targetRol && targetRol !== 'all' && targetRol !== 'todos') {
+      where.rol_codi = targetRol;
+    }
+
+    const rawEstado = estado !== undefined ? estado : (usu_estd !== undefined ? usu_estd : activo);
+    if (rawEstado !== undefined && rawEstado !== '' && rawEstado !== 'all' && rawEstado !== 'todos') {
+      const isActivo = String(rawEstado).toLowerCase() === 'true' || String(rawEstado).toLowerCase() === 'activo' || rawEstado === '1';
+      where.usu_estd = isActivo;
+    }
+
+    if (search && search.trim()) {
+      const q = search.trim();
+      where.OR = [
+        { usu_crro: { contains: q, mode: 'insensitive' } },
+        { tm_repre: { rep_nomb: { contains: q, mode: 'insensitive' } } },
+        { tm_repre: { rep_apel: { contains: q, mode: 'insensitive' } } },
+        { tm_repre: { rep_cedu: { contains: q, mode: 'insensitive' } } },
+        { tm_repre: { rep_telf: { contains: q, mode: 'insensitive' } } },
+        { tm_espec: { esp_nomb: { contains: q, mode: 'insensitive' } } },
+        { tm_espec: { esp_apel: { contains: q, mode: 'insensitive' } } },
+        { tm_admin: { adm_nomb: { contains: q, mode: 'insensitive' } } },
+        { tm_admin: { adm_apel: { contains: q, mode: 'insensitive' } } },
+        {
+          tm_repre: {
+            tm_repre_ninos: {
+              some: {
+                tm_ninos: {
+                  OR: [
+                    { nin_nomb: { contains: q, mode: 'insensitive' } },
+                    { nin_apel: { contains: q, mode: 'insensitive' } }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ];
+    }
+
+    const targetParentesco = parentesco || rep_rela;
+    if (targetParentesco && targetParentesco !== 'all' && targetParentesco !== 'todos') {
+      where.tm_repre = {
+        ...(where.tm_repre || {}),
+        rep_rela: { equals: targetParentesco, mode: 'insensitive' }
+      };
+    }
+
+    const targetGnerNino = generoNino || nin_gner;
+    if (targetGnerNino && targetGnerNino !== 'all' && targetGnerNino !== 'todos') {
+      where.tm_repre = {
+        ...(where.tm_repre || {}),
+        tm_repre_ninos: {
+          some: {
+            tm_ninos: {
+              nin_gner: targetGnerNino
+            }
+          }
+        }
+      };
+    }
+
+    const targetNivel = nivelDiagnostico || nin_nivd;
+    if (targetNivel && targetNivel !== 'all' && targetNivel !== 'todos') {
+      where.tm_repre = {
+        ...(where.tm_repre || {}),
+        tm_repre_ninos: {
+          some: {
+            tm_ninos: {
+              nin_nivd: { contains: targetNivel, mode: 'insensitive' }
+            }
+          }
+        }
+      };
+    }
+
+    const targetPacientes = tienePacientes !== undefined ? tienePacientes : con_pacientes;
+    if (targetPacientes !== undefined && targetPacientes !== '' && targetPacientes !== 'all') {
+      const hasKids = String(targetPacientes).toLowerCase() === 'true' || targetPacientes === '1';
+      if (hasKids) {
+        where.tm_repre = {
+          ...(where.tm_repre || {}),
+          tm_repre_ninos: { some: {} }
+        };
+      } else {
+        where.tm_repre = {
+          ...(where.tm_repre || {}),
+          tm_repre_ninos: { none: {} }
+        };
+      }
+    }
+
+    const startDate = fechaDesde || desde;
+    const endDate = fechaHasta || hasta;
+    if (startDate || endDate) {
+      where.usu_crea = {};
+      if (startDate) where.usu_crea.gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.usu_crea.lte = end;
+      }
+    }
+
     return await prisma.tm_usuar.findMany({
+      where,
       select: {
         usu_codi: true,
         usu_crro: true,

@@ -6,7 +6,8 @@ const mockPrisma = {
   },
   tr_indic: {
     findMany: jest.fn(),
-    create: jest.fn()
+    create: jest.fn(),
+    update: jest.fn()
   },
   tr_incid: {
     findMany: jest.fn(),
@@ -77,6 +78,18 @@ describe('EspecialistaController', () => {
     });
   });
 
+  describe('listarIndicaciones', () => {
+    it('obtiene la lista de indicaciones para un nino', async () => {
+      mockPrisma.tr_indic.findMany.mockResolvedValue([{ ind_codi: 'IND1', ind_desc: 'Test' }]);
+      const req = buildReq({ params: { nin_codi: 'N1' } });
+      const res = buildRes();
+      await controller.listarIndicaciones(req, res);
+      expect(mockPrisma.tr_indic.findMany).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ status: 'ok', data: [{ ind_codi: 'IND1', ind_desc: 'Test' }] });
+    });
+  });
+
   describe('crearIndicacion', () => {
     it('lanza 400 si faltan campos requeridos', async () => {
       mockPrisma.tm_espec.findUnique.mockResolvedValue({ esp_codi: 'E1' });
@@ -103,6 +116,20 @@ describe('EspecialistaController', () => {
       await controller.crearIndicacion(req, res);
       expect(mockPrisma.tr_indic.create).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(201);
+    });
+  });
+
+  describe('marcarIndicacionLeida', () => {
+    it('marca una indicación como leída exitosamente', async () => {
+      mockPrisma.tr_indic.update.mockResolvedValue({ ind_codi: 'IND1', ind_leid: true });
+      const req = buildReq({ params: { ind_codi: 'IND1' } });
+      const res = buildRes();
+      await controller.marcarIndicacionLeida(req, res);
+      expect(mockPrisma.tr_indic.update).toHaveBeenCalledWith({
+        where: { ind_codi: 'IND1' },
+        data: { ind_leid: true }
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
     });
   });
 
