@@ -27,6 +27,13 @@ const errorHandler = (err, req, res, next) => {
 
   // Errores custom con status (ej. AppError en los controladores)
   const status = err.status || err.statusCode || 500;
+  if (status >= 500 && process.env.SENTRY_DSN) {
+    try {
+      const Sentry = require('@sentry/node');
+      Sentry.captureException(err);
+    } catch (_) {}
+  }
+
   const message = isProduction() && status >= 500
     ? 'Error interno del servidor'
     : (err.message || 'Error interno del servidor');

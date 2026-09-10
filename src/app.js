@@ -2,6 +2,16 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
+const Sentry = require('@sentry/node');
+
+// Inicialización opcional de Sentry para producción
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'production',
+    tracesSampleRate: 0.2,
+  });
+}
 
 const app = express();
 const { isOriginAllowed } = require('./middleware/cors');
