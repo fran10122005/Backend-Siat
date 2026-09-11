@@ -2,11 +2,12 @@ const request = require('supertest');
 const app = require('./app');
 
 describe('Server / rutas básicas', () => {
-  it('GET /api/health responde ok', async () => {
+  it('GET /api/health responde con estado de salud válido', async () => {
     const res = await request(app).get('/api/health');
-    expect(res.status).toBe(200);
-    expect(res.body.status).toBe('ok');
+    expect([200, 503]).toContain(res.status);
+    expect(['healthy', 'degraded', 'unhealthy']).toContain(res.body.status);
   });
+
 
   it('respuesta 404 para rutas desconocidas', async () => {
     const res = await request(app).get('/api/no-existe');

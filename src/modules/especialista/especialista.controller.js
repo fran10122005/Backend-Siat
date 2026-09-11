@@ -112,12 +112,21 @@ const marcarIndicacionLeida = catchAsync(async (req, res) => {
 
 const listarIncidentes = catchAsync(async (req, res) => {
   const { nin_codi } = req.params;
-  const incidentes = await prisma.tr_incid.findMany({
-    where: { nin_codi },
-    include: { tm_espec: { select: { esp_nomb: true, esp_apel: true } } },
-    orderBy: { inc_time: 'desc' }
-  });
-  res.status(200).json({ status: 'ok', data: incidentes });
+  const { getPagination } = require('../../utils/pagination');
+  const { skip, limit, formatMeta } = getPagination(req.query, 50, 100);
+
+  const [incidentes, total] = await Promise.all([
+    prisma.tr_incid.findMany({
+      where: { nin_codi },
+      skip,
+      take: limit,
+      include: { tm_espec: { select: { esp_nomb: true, esp_apel: true } } },
+      orderBy: { inc_time: 'desc' }
+    }),
+    prisma.tr_incid.count({ where: { nin_codi } })
+  ]);
+
+  res.status(200).json({ status: 'ok', data: incidentes, pagination: formatMeta(total) });
 });
 
 const crearIncidente = catchAsync(async (req, res) => {
@@ -157,6 +166,8 @@ const crearIncidente = catchAsync(async (req, res) => {
 
 const listarAlertasNino = catchAsync(async (req, res) => {
   const { nin_codi } = req.params;
+  const { getPagination } = require('../../utils/pagination');
+  const { skip, limit, formatMeta } = getPagination(req.query, 50, 100);
 
   const sesiones = await prisma.tr_sesio.findMany({
     where: { nin_codi },
@@ -203,8 +214,12 @@ const listarAlertasNino = catchAsync(async (req, res) => {
 
   alertas.sort((a, b) => new Date(b.fec_hora) - new Date(a.fec_hora));
 
-  res.status(200).json({ status: 'ok', data: alertas });
+  const total = alertas.length;
+  const pagedAlertas = alertas.slice(skip, skip + limit);
+
+  res.status(200).json({ status: 'ok', data: pagedAlertas, pagination: formatMeta(total) });
 });
+
 
 module.exports = {
   listarSoap,

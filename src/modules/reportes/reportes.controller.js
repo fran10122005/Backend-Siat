@@ -158,46 +158,52 @@ const obtenerEvolucionRepresentante = catchAsync(async (req, res) => {
 
 const getHistorialCompleto = catchAsync(async (req, res) => {
   const { nin_codi } = req.params;
+  const { getPagination } = require('../../utils/pagination');
+  const { skip, limit, formatMeta } = getPagination(req.query, 50, 100);
 
-  const reportes = await prisma.tr_repor.findMany({
-    where: { rpt_nin: nin_codi },
-    include: {
-      tm_espec: true
-    },
-    orderBy: { rpt_inpe: 'desc' }
-  });
-
-  const sesiones = await prisma.tr_sesio.findMany({
-    where: { nin_codi },
-    include: {
-      tm_activ: true,
-      tr_alert: {
-        include: {
-          tr_feedb: true
+  const [reportes, sesiones, bitacoras, indicaciones, totalSesiones] = await Promise.all([
+    prisma.tr_repor.findMany({
+      where: { rpt_nin: nin_codi },
+      include: {
+        tm_espec: true
+      },
+      orderBy: { rpt_inpe: 'desc' }
+    }),
+    prisma.tr_sesio.findMany({
+      where: { nin_codi },
+      skip,
+      take: limit,
+      include: {
+        tm_activ: true,
+        tr_alert: {
+          include: {
+            tr_feedb: true
+          }
         }
-      }
-    },
-    orderBy: { ses_inic: 'desc' }
-  });
-
-  const bitacoras = await prisma.tr_bitac.findMany({
-    where: { nin_codi },
-    orderBy: { bit_fech: 'desc' }
-  });
-
-  const indicaciones = await prisma.tr_indic.findMany({
-    where: { nin_codi },
-    include: {
-      tm_espec: {
-        select: {
-          esp_nomb: true,
-          esp_apel: true,
-          esp_espe: true
+      },
+      orderBy: { ses_inic: 'desc' }
+    }),
+    prisma.tr_bitac.findMany({
+      where: { nin_codi },
+      skip,
+      take: limit,
+      orderBy: { bit_fech: 'desc' }
+    }),
+    prisma.tr_indic.findMany({
+      where: { nin_codi },
+      include: {
+        tm_espec: {
+          select: {
+            esp_nomb: true,
+            esp_apel: true,
+            esp_espe: true
+          }
         }
-      }
-    },
-    orderBy: { ind_crea: 'desc' }
-  });
+      },
+      orderBy: { ind_crea: 'desc' }
+    }),
+    prisma.tr_sesio.count({ where: { nin_codi } })
+  ]);
 
   // Mapear indicaciones clínicas de tr_indic al formato de reportes para máxima retrocompatibilidad
   const mappedIndicaciones = indicaciones.map((ind) => ({
@@ -217,15 +223,20 @@ const getHistorialCompleto = catchAsync(async (req, res) => {
     (a, b) => new Date(b.rpt_inpe) - new Date(a.rpt_inpe)
   );
 
+  const pagedReportes = allReportes.slice(skip, skip + limit);
+  const pagedIndicaciones = indicaciones.slice(skip, skip + limit);
+
   res.status(200).json({
     data: {
-      reportes: allReportes,
-      indicaciones,
+      reportes: pagedReportes,
+      indicaciones: pagedIndicaciones,
       sesiones,
       bitacoras
-    }
+    },
+    pagination: formatMeta(Math.max(totalSesiones, allReportes.length))
   });
 });
+
 
 const registrarFeedbackAlerta = catchAsync(async (req, res) => {
   const { ale_codi } = req.params;

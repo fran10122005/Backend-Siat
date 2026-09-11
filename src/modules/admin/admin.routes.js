@@ -24,6 +24,7 @@ router.get('/ninos', adminController.listNinos);
 router.get('/especialistas', adminController.listEspecialistas);
 router.get('/asignaciones', adminController.listAsignaciones);
 router.get('/users', adminController.listUsers);
+router.get('/usuarios', adminController.listUsers);
 router.get('/auditoria', adminController.getAuditoria);
 router.patch('/users/:usu_codi/estado', adminController.toggleUser);
 router.post('/users/:usu_codi/password', adminController.resetUserPassword);

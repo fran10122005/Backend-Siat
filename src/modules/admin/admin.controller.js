@@ -134,8 +134,8 @@ const toggleEspecialidad = catchAsync(async (req, res) => {
 });
 
 const listUsers = catchAsync(async (req, res) => {
-  const users = await adminService.listUsers(req.query);
-  res.status(200).json({ data: users });
+  const { users, pagination } = await adminService.listUsers(req.query);
+  res.status(200).json({ data: users, pagination });
 });
 
 const toggleUser = catchAsync(async (req, res) => {
@@ -169,9 +169,10 @@ const updateNinoFoto = catchAsync(async (req, res) => {
 });
 
 const getAuditoria = catchAsync(async (req, res) => {
-  const logs = await adminService.listAuditoria();
-  res.status(200).json({ data: logs });
+  const { logs, pagination } = await adminService.listAuditoria(req.query);
+  res.status(200).json({ data: logs, pagination });
 });
+
 
 
 const updateNino = catchAsync(async (req, res) => {

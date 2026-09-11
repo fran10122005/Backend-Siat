@@ -146,7 +146,33 @@ Permite explorar los esquemas, headers de autorización `Bearer <JWT>` y probar 
 ### 🩺 Salud del Sistema
 | Método | Ruta | Autenticación | Descripción |
 |---|---|---|---|
-| `GET` | `/api/health` | Pública | Verifica conectividad con PostgreSQL/Neon y estado del servidor. |
+| `GET` | `/api/health` | Pública | Verifica el estado sintético (`healthy`, `degraded`, `unhealthy`) sin filtrar detalles internos. |
+| `GET` | `/api/health/detail` | `X-Healthcheck-Token` | Desglose granular de dependencias (PostgreSQL/Neon, Socket.io, EmailJS, Cloudinary). |
+
+---
+
+## 🔭 Observabilidad y Monitoreo
+
+SIAT implementa una arquitectura integral de observabilidad estructurada para entornos de misión crítica:
+
+### 1. Sentry Frontend (Cliente React PWA)
+- **Monitoreo de Errores de Interfaz:** Captura excepciones no capturadas, fallos en renders de React y errores en llamadas asíncronas de Axios.
+- **Trazas de Rendimiento Web:** Medición de Core Web Vitals (FCP, LCP, CLS, INP) y tiempos de navegación entre módulos clínicos.
+- **Contexto Clínico Seguro:** Captura únicamente identificadores anonimizados y códigos de error, omitiendo estrictamente PII/PHI.
+
+### 2. Sentry Backend (API Node.js / Express)
+- **Inicialización Condicional:** Activado automáticamente mediante la variable de entorno `SENTRY_DSN`. Si no está configurada, el backend opera normalmente sin emitir advertencias de bloqueo.
+- **Captura Centralizada de Excepciones:** Integrado con el middleware `errorHandler.js` para capturar errores 500 no gestionados con stack trace completo.
+- **Rendimiento de Transacciones:** Muestreo de transacciones HTTP (`tracesSampleRate: 0.2` en producción) para identificar endpoints lentos o cuellos de botella en consultas Prisma.
+
+### 3. Endpoints de Diagnóstico (`/api/health` y `/api/health/detail`)
+- **`GET /api/health` (Público):** Diseñado para balanceadores de carga (Cloudflare, Railway, Nginx) y orquestadores Docker/Kubernetes. Retorna exclusivamente `{ status: "healthy" | "degraded" | "unhealthy" }`. Si dependencias auxiliares fallan pero PostgreSQL está activo, responde `degraded` con código HTTP 200 para evitar reinicios cíclicos de contenedores.
+- **`GET /api/health/detail` (Protegido):** Requiere el header `X-Healthcheck-Token` configurado en `process.env.HEALTHCHECK_TOKEN`. Retorna latencia exacta de DB, cantidad de clientes WebSocket conectados y estado de EmailJS y Cloudinary.
+
+### 4. Logging Seguro en JSON Estructurado
+- **Formato Estándar:** Todos los registros emitidos por `src/utils/logger.js` son serializados en JSON estricto (`timestamp`, `level`, `message`, `context`), facilitando la ingesta directa en CloudWatch, Datadog o Grafana Loki.
+- **Nivel de Producción:** Configurado con `LOG_LEVEL=info` en entornos productivos.
+
 
 ---
 

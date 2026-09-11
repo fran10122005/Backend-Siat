@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
+const compression = require('compression');
 const Sentry = require('@sentry/node');
 
 // Inicialización opcional de Sentry para producción
@@ -15,12 +16,23 @@ if (process.env.SENTRY_DSN) {
 
 const app = express();
 const { isOriginAllowed } = require('./middleware/cors');
+const emailService = require('./services/email.service');
+const prisma = require('./config/db');
 
-// Headers de seguridad (CSP, X-Frame-Options, HSTS, etc.)
-app.use(helmet());
-
-// Detrás del proxy de Render/Heroku para que rate-limit y req.ip identifiquen al cliente real
+// Configuración de trust proxy: crítico detrás de Cloudflare/Nginx/Railway/Render
 app.set('trust proxy', 1);
+
+// Headers de seguridad con Helmet (HSTS activado en producción sin preload provisional)
+app.use(helmet({
+  hsts: process.env.NODE_ENV === 'production' ? {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: false
+  } : false
+}));
+
+// Compresión Gzip para reducir payloads JSON hacia clientes
+app.use(compression());
 
 // Configurar CORS: origen definido en el helper compartido (middleware/cors.js)
 app.use(cors({
@@ -46,25 +58,98 @@ app.use('/api', globalLimiter);
 const setupSwagger = require('./config/swagger');
 setupSwagger(app);
 
-// Rutas base
-const prisma = require('./config/db');
+// Helper para evaluar estado de salud de dependencias del sistema
+async function evaluateHealth(appInstance) {
+  const services = {
+    database: { status: 'down' },
+    socketio: { status: 'down' },
+    emailjs: { status: 'unconfigured' },
+    cloudinary: { status: 'unconfigured' }
+  };
+
+  // 1. Base de datos
+  try {
+    const start = Date.now();
+    await prisma.$queryRaw`SELECT 1`;
+    services.database = { status: 'up', latencyMs: Date.now() - start };
+  } catch (err) {
+    services.database = { status: 'down', error: err.message };
+  }
+
+  // 2. Socket.io
+  const io = appInstance.get('io');
+  if (io) {
+    services.socketio = { status: 'up', clientsCount: io.engine?.clientsCount || 0 };
+  }
+
+  // 3. EmailJS
+  if (emailService.isConfigured()) {
+    services.emailjs = { status: 'configured' };
+  }
+
+  // 4. Cloudinary
+  if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+    services.cloudinary = { status: 'configured' };
+  }
+
+  // Determinar estado global:
+  // - unhealthy (503): si la base de datos falla
+  // - degraded (200): si DB está OK pero alguna dependencia secundaria falla o no está configurada
+  // - healthy (200): si todas las dependencias están OK
+  let status = 'healthy';
+  if (services.database.status !== 'up') {
+    status = 'unhealthy';
+  } else if (
+    services.socketio.status !== 'up' ||
+    services.emailjs.status !== 'configured' ||
+    services.cloudinary.status !== 'configured'
+  ) {
+    status = 'degraded';
+  }
+
+  return { status, services };
+}
+
+// Endpoint público de healthcheck (solo retorna status mínimo para no filtrar detalles internos)
 app.get('/api/health', async (req, res) => {
   try {
-    await prisma.$queryRaw`SELECT 1`;
-    res.status(200).json({
-      status: 'ok',
-      db: 'connected',
+    const { status } = await evaluateHealth(req.app);
+    const httpCode = status === 'unhealthy' ? 503 : 200;
+    res.status(httpCode).json({ status });
+  } catch (err) {
+    res.status(503).json({ status: 'unhealthy' });
+  }
+});
+
+// Endpoint detallado de healthcheck (protegido por header X-Healthcheck-Token)
+app.get('/api/health/detail', async (req, res) => {
+  const configuredToken = process.env.HEALTHCHECK_TOKEN;
+  if (!configuredToken) {
+    return res.status(404).json({ error: 'Endpoint no disponible' });
+  }
+
+  const providedToken = req.headers['x-healthcheck-token'];
+  if (!providedToken || providedToken !== configuredToken) {
+    return res.status(401).json({ error: 'Token de healthcheck no autorizado' });
+  }
+
+  try {
+    const { status, services } = await evaluateHealth(req.app);
+    const httpCode = status === 'unhealthy' ? 503 : 200;
+    res.status(httpCode).json({
+      status,
       timestamp: new Date().toISOString(),
-      message: 'Backend SIAT funcionando correctamente'
+      services
     });
   } catch (err) {
-    res.status(500).json({
-      status: 'error',
-      db: 'disconnected',
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
       error: err.message
     });
   }
 });
+
 
 const authRoutes = require('./modules/auth/auth.routes');
 const passkeyRoutes = require('./modules/passkey/passkey.routes');

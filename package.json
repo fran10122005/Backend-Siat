@@ -24,6 +24,7 @@
     "@simplewebauthn/server": "^13.3.2",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.11.0",
+    "compression": "^1.8.2",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

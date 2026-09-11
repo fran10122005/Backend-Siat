@@ -114,11 +114,29 @@ docker compose up -d
 
 ---
 
-### B. Configuración de HTTPS y Terminación TLS
+### B. Configuración Obligatoria de HTTPS, HSTS y Trust Proxy
 
-Las funciones PWA y WebAuthn (Passkeys) **requieren obligatoriamente HTTPS**:
+> [!CAUTION]
+> **HTTPS es 100% Obligatorio en Producción:**  
+> Las especificaciones del W3C para **WebAuthn (Passkeys / Biometría FIDO2)** y las APIs de Progressive Web App (PWA Service Workers, Cache Storage, Credential Management) **bloquean y deshabilitan cualquier ejecución sobre conexiones HTTP no seguras** en navegadores modernos (Chrome, Safari, iOS WebKit, Edge, Firefox). El único origen HTTP permitido por los estándares es `http://localhost` exclusivamente en entornos de desarrollo local. En producción, cualquier intento de inicio de sesión biométrico o instalación PWA sobre HTTP fallará de manera inmediata con `SecurityError: The operation is insecure`.
 
-#### Opción 1: Cloudflare Tunnel (`cloudflared`) — Máxima Seguridad (Sin abrir puertos en router)
+#### 1. Configuración de Trust Proxy en el Backend
+Cuando la API de SIAT se despliega detrás de balanceadores de carga o proxies inversos (Cloudflare, Railway, Render, Nginx, Caddy), el servidor Node.js recibe el tráfico a través de una red interna.
+En `src/app.js` se encuentra activo:
+```javascript
+app.set('trust proxy', 1);
+```
+Esto garantiza que:
+- `req.ip` refleje la IP pública original del cliente (leída desde el header `X-Forwarded-For`).
+- Los middlewares de **Rate Limiting** (`authLimiter`, `globalLimiter`, `telemetriaIpLimiter`) apliquen restricciones por cliente real y no bloqueen a todo el tráfico global al colisionar con la IP del proxy.
+- Las cabeceras `X-Forwarded-Proto` confirmen que la petición externa fue transmitida bajo protocolo HTTPS seguro.
+
+#### 2. Cabeceras HSTS (HTTP Strict Transport Security)
+El backend implementa `helmet({ hsts: { maxAge: 31536000, includeSubDomains: true, preload: false } })` en modo producción. Esto instruye a los navegadores a recordar que todo el tráfico futuro hacia el dominio debe ser enrutado obligatoriamente por HTTPS durante un año (31.536.000 segundos), mitigando ataques de degradación SSL/TLS o secuestro de cookies (`sslstrip`).
+
+#### 3. Opciones de Terminación TLS en Producción:
+
+##### Opción 1: Cloudflare Tunnel (`cloudflared`) — Máxima Seguridad (Sin abrir puertos en router)
 ```bash
 # Instalar cloudflared
 curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
@@ -130,7 +148,7 @@ cloudflared tunnel route dns siat-prod app.tudominio.com
 cloudflared tunnel route dns siat-prod api.tudominio.com
 ```
 
-#### Opción 2: Reverse Proxy con Caddy (Certificados SSL automáticos Let's Encrypt)
+##### Opción 2: Reverse Proxy con Caddy (Certificados SSL automáticos Let's Encrypt)
 Crear un archivo `Caddyfile`:
 ```caddy
 app.tudominio.com {
@@ -142,6 +160,7 @@ api.tudominio.com {
 }
 ```
 Iniciar con: `caddy run --config Caddyfile`.
+
 
 ---
 

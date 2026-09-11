@@ -32,19 +32,29 @@ class AdminService {
     });
   }
 
-  async listAuditoria() {
-    return await prisma.tr_audito.findMany({
-      include: {
-        tm_usuar: {
-          select: {
-            usu_crro: true,
-            tm_admin: { select: { adm_nomb: true, adm_apel: true } },
-            tm_espec: { select: { esp_nomb: true, esp_apel: true } }
+  async listAuditoria(queryParams = {}) {
+    const { getPagination } = require('../../utils/pagination');
+    const { skip, limit, formatMeta } = getPagination(queryParams, 50, 100);
+
+    const [logs, total] = await Promise.all([
+      prisma.tr_audito.findMany({
+        skip,
+        take: limit,
+        include: {
+          tm_usuar: {
+            select: {
+              usu_crro: true,
+              tm_admin: { select: { adm_nomb: true, adm_apel: true } },
+              tm_espec: { select: { esp_nomb: true, esp_apel: true } }
+            }
           }
-        }
-      },
-      orderBy: { aud_time: 'desc' }
-    });
+        },
+        orderBy: { aud_time: 'desc' }
+      }),
+      prisma.tr_audito.count()
+    ]);
+
+    return { logs, pagination: formatMeta(total) };
   }
 
   async listNinos(queryParams = {}) {
@@ -610,51 +620,62 @@ class AdminService {
       }
     }
 
-    return await prisma.tm_usuar.findMany({
-      where,
-      select: {
-        usu_codi: true,
-        usu_crro: true,
-        usu_crea: true,
-        usu_logi: true,
-        usu_estd: true,
-        rol_codi: true,
-        tm_roles: { select: { rol_nomb: true } },
-        tm_espec: { select: { esp_nomb: true, esp_apel: true, esp_foto: true } },
-        tm_repre: {
-          select: {
-            rep_cod: true,
-            rep_nomb: true,
-            rep_apel: true,
-            rep_rela: true,
-            rep_telf: true,
-            rep_foto: true,
-            rep_cedu: true,
-            tm_repre_ninos: {
-              select: {
-                nin_codi: true,
-                tm_ninos: {
-                  select: {
-                    nin_codi: true,
-                    nin_nomb: true,
-                    nin_apel: true,
-                    nin_fnac: true,
-                    nin_gner: true,
-                    nin_nivd: true,
-                    nin_foto: true,
-                    nin_diag: true,
-                    nin_docs: true,
+    const { getPagination } = require('../../utils/pagination');
+    const { skip, limit, formatMeta } = getPagination(queryParams, 50, 100);
+
+    const [users, total] = await Promise.all([
+      prisma.tm_usuar.findMany({
+        where,
+        skip,
+        take: limit,
+        select: {
+          usu_codi: true,
+          usu_crro: true,
+          usu_crea: true,
+          usu_logi: true,
+          usu_estd: true,
+          rol_codi: true,
+          tm_roles: { select: { rol_nomb: true } },
+          tm_espec: { select: { esp_nomb: true, esp_apel: true, esp_foto: true } },
+          tm_repre: {
+            select: {
+              rep_cod: true,
+              rep_nomb: true,
+              rep_apel: true,
+              rep_rela: true,
+              rep_telf: true,
+              rep_foto: true,
+              rep_cedu: true,
+              tm_repre_ninos: {
+                select: {
+                  nin_codi: true,
+                  tm_ninos: {
+                    select: {
+                      nin_codi: true,
+                      nin_nomb: true,
+                      nin_apel: true,
+                      nin_fnac: true,
+                      nin_gner: true,
+                      nin_nivd: true,
+                      nin_foto: true,
+                      nin_diag: true,
+                      nin_docs: true,
+                    },
                   },
                 },
               },
             },
           },
+          tm_admin: { select: { adm_nomb: true, adm_apel: true, adm_foto: true } }
         },
-        tm_admin: { select: { adm_nomb: true, adm_apel: true, adm_foto: true } }
-      },
-      orderBy: { usu_crea: 'desc' }
-    });
+        orderBy: { usu_crea: 'desc' }
+      }),
+      prisma.tm_usuar.count({ where })
+    ]);
+
+    return { users, pagination: formatMeta(total) };
   }
+
 
   async toggleUserEstado(usu_codi, activo) {
     const user = await prisma.tm_usuar.findUnique({ where: { usu_codi } });

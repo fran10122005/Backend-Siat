@@ -170,7 +170,9 @@ describe('EspecialistaController', () => {
       const req = buildReq({ params: { nin_codi: 'N1' } });
       const res = buildRes();
       await controller.listarAlertasNino(req, res);
-      expect(res.json).toHaveBeenCalledWith({ status: 'ok', data: [] });
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'ok', data: [] })
+      );
     });
 
     it('construye alertas con telemetría asociada', async () => {
