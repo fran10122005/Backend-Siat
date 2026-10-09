@@ -1,9 +1,5 @@
 const mockPrisma = {
   tm_espec: { findUnique: jest.fn() },
-  tr_soap: {
-    findMany: jest.fn(),
-    create: jest.fn()
-  },
   tr_indic: {
     findMany: jest.fn(),
     create: jest.fn(),
@@ -38,45 +34,6 @@ const buildRes = () => {
 
 describe('EspecialistaController', () => {
   beforeEach(() => jest.clearAllMocks());
-
-  describe('crearSoap', () => {
-    it('lanza 404 si no es especialista', async () => {
-      mockPrisma.tm_espec.findUnique.mockResolvedValue(null);
-      const req = buildReq({ body: { nin_codi: 'N1' } });
-      const res = buildRes();
-      await controller.crearSoap(req, res);
-      expect(res.status).toHaveBeenCalledWith(404);
-    });
-
-    it('lanza 400 si faltan campos SOAP', async () => {
-      mockPrisma.tm_espec.findUnique.mockResolvedValue({ esp_codi: 'E1' });
-      const req = buildReq({ body: { nin_codi: 'N1' } });
-      const res = buildRes();
-      await controller.crearSoap(req, res);
-      expect(res.status).toHaveBeenCalledWith(400);
-    });
-
-    it('crea la nota SOAP correctamente', async () => {
-      mockPrisma.tm_espec.findUnique.mockResolvedValue({ esp_codi: 'E1' });
-      mockPrisma.tr_soap.create.mockImplementation(async (args) => args.data);
-      const req = buildReq({
-        body: {
-          nin_codi: 'N1',
-          soap_subj: 'S',
-          soap_obje: 'O',
-          soap_anal: 'A',
-          soap_plan: 'P'
-        }
-      });
-      const res = buildRes();
-      await controller.crearSoap(req, res);
-      expect(mockPrisma.tr_soap.create).toHaveBeenCalled();
-      expect(res.status).toHaveBeenCalledWith(201);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'success' })
-      );
-    });
-  });
 
   describe('listarIndicaciones', () => {
     it('obtiene la lista de indicaciones para un nino', async () => {

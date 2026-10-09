@@ -7,44 +7,7 @@ const getEspecialista = async (usu_codi) => {
   return prisma.tm_espec.findUnique({ where: { usu_codi } });
 };
 
-// ─── NOTAS SOAP ───────────────────────────────────────────────────────────────
 
-const listarSoap = catchAsync(async (req, res) => {
-  const { nin_codi } = req.params;
-  const notas = await prisma.tr_soap.findMany({
-    where: { nin_codi },
-    include: { tm_espec: { select: { esp_nomb: true, esp_apel: true } } },
-    orderBy: { soap_fech: 'desc' }
-  });
-  res.status(200).json({ status: 'ok', data: notas });
-});
-
-const crearSoap = catchAsync(async (req, res) => {
-  const { nin_codi, soap_subj, soap_obje, soap_anal, soap_plan } = req.body;
-  const especialista = await getEspecialista(req.user.usu_codi);
-  if (!especialista) {
-    return res.status(404).json({ error: 'Especialista no encontrado o sin permisos' });
-  }
-  if (!nin_codi || !soap_subj || !soap_obje || !soap_anal || !soap_plan) {
-    return res.status(400).json({ error: 'Todos los campos SOAP (S-O-A-P) son requeridos' });
-  }
-
-  const soap_codi = 'SOAP_' + crypto.randomBytes(3).toString('hex').toUpperCase();
-  const nota = await prisma.tr_soap.create({
-    data: {
-      soap_codi: soap_codi.substring(0, 10),
-      nin_codi,
-      esp_codi: especialista.esp_codi,
-      soap_subj,
-      soap_obje,
-      soap_anal,
-      soap_plan
-    },
-    include: { tm_espec: { select: { esp_nomb: true, esp_apel: true } } }
-  });
-
-  res.status(201).json({ status: 'success', data: nota });
-});
 
 // ─── INDICACIONES MÉDICAS ─────────────────────────────────────────────────────
 
@@ -222,8 +185,6 @@ const listarAlertasNino = catchAsync(async (req, res) => {
 
 
 module.exports = {
-  listarSoap,
-  crearSoap,
   listarIndicaciones,
   crearIndicacion,
   marcarIndicacionLeida,

@@ -20,7 +20,9 @@ class SesionesService {
     if (actividad.act_estd === 'Inactiva') throw new AppError('La actividad se encuentra inactiva', 409);
 
     let disCodi = data.dis_codi;
-    if (!disCodi) {
+    let dispositivo = disCodi ? await prisma.tm_dispo.findUnique({ where: { dis_codi: disCodi } }) : null;
+
+    if (!dispositivo) {
       const defaultDevice = await prisma.tm_dispo.findFirst({
         where: { OR: [{ nin_codi: data.nin_codi }, { ins_codi: nino.ins_codi }] }
       }) || await prisma.tm_dispo.findFirst();
@@ -28,11 +30,11 @@ class SesionesService {
       if (!defaultDevice) {
         const virtualDevice = await prisma.tm_dispo.create({
           data: {
-            dis_codi: generateId('D'),
+            dis_codi: (disCodi && disCodi.length <= 10) ? disCodi : generateId('D'),
             ins_codi: nino.ins_codi,
             nin_codi: nino.nin_codi,
-            dis_sral: `DEV-VIRTUAL-${Date.now()}`,
-            dis_vers: 'v1.0-sim',
+            dis_sral: `DEV-${disCodi || Date.now()}`,
+            dis_vers: 'v1.0-ble',
             dis_iplo: '127.0.0.1',
             dis_stdo: 'Activo'
           }
@@ -41,9 +43,6 @@ class SesionesService {
       } else {
         disCodi = defaultDevice.dis_codi;
       }
-    } else {
-      const dispositivo = await prisma.tm_dispo.findUnique({ where: { dis_codi: disCodi } });
-      if (!dispositivo) throw new AppError('Dispositivo no encontrado', 404);
     }
 
     const sesion = await prisma.tr_sesio.create({

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "tr_indic" ADD COLUMN IF NOT EXISTS "ind_leid" BOOLEAN NOT NULL DEFAULT false;

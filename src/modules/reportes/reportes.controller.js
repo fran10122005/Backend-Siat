@@ -196,7 +196,11 @@ const getHistorialCompleto = catchAsync(async (req, res) => {
           select: {
             esp_nomb: true,
             esp_apel: true,
-            esp_espe: true
+            tm_especi: {
+              select: {
+                esc_nomb: true
+              }
+            }
           }
         }
       },
@@ -216,7 +220,11 @@ const getHistorialCompleto = catchAsync(async (req, res) => {
     rpt_meta: 100,
     rpt_nota: `[${ind.ind_tipo} - ${ind.ind_area}] ${ind.ind_desc}`,
     rpt_nube: !ind.ind_leid,
-    tm_espec: ind.tm_espec
+    tm_espec: {
+      esp_nomb: ind.tm_espec?.esp_nomb || '',
+      esp_apel: ind.tm_espec?.esp_apel || '',
+      esp_espe: ind.tm_espec?.tm_especi?.esc_nomb || ind.ind_area || 'General'
+    }
   }));
 
   const allReportes = [...reportes, ...mappedIndicaciones].sort(

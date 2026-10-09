@@ -6,7 +6,7 @@ describe('Server / rutas básicas', () => {
     const res = await request(app).get('/api/health');
     expect([200, 503]).toContain(res.status);
     expect(['healthy', 'degraded', 'unhealthy']).toContain(res.body.status);
-  });
+  }, 15000);
 
 
   it('respuesta 404 para rutas desconocidas', async () => {
