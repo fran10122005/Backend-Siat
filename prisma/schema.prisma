@@ -29,38 +29,38 @@ model tm_roles {
 }
 
 model tm_usuar {
-  usu_codi String    @id @db.VarChar(10)
-  rol_codi String    @db.VarChar(10)
-  usu_crro String    @db.VarChar(50)
-  usu_clve String    @db.VarChar(60)
-  usu_crea DateTime  @db.Timestamp()
-  usu_logi DateTime? @db.Timestamp()
-  usu_estd Boolean
-  usu_rtok String?   @db.VarChar(100)
-  usu_rexp DateTime? @db.Timestamp()
-  tm_roles tm_roles  @relation(fields: [rol_codi], references: [rol_codi])
-  tm_espec tm_espec?
-  tm_repre  tm_repre?
-  tm_admin  tm_admin?
-  tr_audito tr_audito[]
-  tm_passkeys tm_passkeys[]
+  usu_codi      String         @id @db.VarChar(10)
+  rol_codi      String         @db.VarChar(10)
+  usu_crro      String         @db.VarChar(50)
+  usu_clve      String         @db.VarChar(60)
+  usu_crea      DateTime       @db.Timestamp()
+  usu_logi      DateTime?      @db.Timestamp()
+  usu_estd      Boolean
+  usu_rtok      String?        @db.VarChar(100)
+  usu_rexp      DateTime?      @db.Timestamp()
+  tm_roles      tm_roles       @relation(fields: [rol_codi], references: [rol_codi])
+  tm_espec      tm_espec?
+  tm_repre      tm_repre?
+  tm_admin      tm_admin?
+  tr_audito     tr_audito[]
+  tm_passkeys   tm_passkeys[]
   tm_pref_notif tm_pref_notif?
 }
 
-  model tm_insti {
-    ins_codi String     @id @db.VarChar(11)
-    ins_nomb String     @db.VarChar(100)
-    ins_dire String     @db.Text
-    ins_telf String     @db.VarChar(15)
-    ins_pers String?    @db.VarChar(50)
-    ins_emai String?    @db.VarChar(120)
-    ins_web  String?    @db.VarChar(200)
-    ins_estd Boolean    @default(true)
-    tm_espec tm_espec[]
-    tm_ninos tm_ninos[]
-    tm_dispo tm_dispo[]
-    tm_admin tm_admin[]
-  }
+model tm_insti {
+  ins_codi String     @id @db.VarChar(11)
+  ins_nomb String     @db.VarChar(100)
+  ins_dire String     @db.Text
+  ins_telf String     @db.VarChar(15)
+  ins_pers String?    @db.VarChar(50)
+  ins_emai String?    @db.VarChar(120)
+  ins_web  String?    @db.VarChar(200)
+  ins_estd Boolean    @default(true)
+  tm_espec tm_espec[]
+  tm_ninos tm_ninos[]
+  tm_dispo tm_dispo[]
+  tm_admin tm_admin[]
+}
 
 model tm_especi {
   esc_codi String     @id @db.VarChar(10)
@@ -71,28 +71,28 @@ model tm_especi {
 }
 
 model tm_espec {
-  esp_codi     String  @id @db.VarChar(11)
-  usu_codi     String  @unique @db.VarChar(10)
-  ins_codi     String  @db.VarChar(11)
-  esp_nomb     String  @db.VarChar(50)
-  esp_apel     String  @db.VarChar(50)
-  esc_codi     String  @db.VarChar(10)
+  esp_codi     String      @id @db.VarChar(11)
+  usu_codi     String      @unique @db.VarChar(10)
+  ins_codi     String      @db.VarChar(11)
+  esp_nomb     String      @db.VarChar(50)
+  esp_apel     String      @db.VarChar(50)
+  esc_codi     String      @db.VarChar(10)
   esp_gner     gender_enum @default(F)
-  esp_tdoc     String  @default("V") @db.VarChar(2)
-  esp_fnac     DateTime? @db.Date
-  esp_foto     String? @db.Text
-  esp_licencia String? @db.VarChar(50)
-  esp_telf     String? @db.VarChar(15)
+  esp_tdoc     String      @default("V") @db.VarChar(2)
+  esp_fnac     DateTime?   @db.Date
+  esp_foto     String?     @db.Text
+  esp_licencia String?     @db.VarChar(50)
+  esp_telf     String?     @db.VarChar(15)
 
-  tm_usuar  tm_usuar   @relation(fields: [usu_codi], references: [usu_codi])
-  tm_insti  tm_insti   @relation(fields: [ins_codi], references: [ins_codi])
-  tm_especi tm_especi  @relation(fields: [esc_codi], references: [esc_codi])
-  tc_asign  tc_asign[]
-  tr_repor  tr_repor[]
+  tm_usuar    tm_usuar      @relation(fields: [usu_codi], references: [usu_codi])
+  tm_insti    tm_insti      @relation(fields: [ins_codi], references: [ins_codi])
+  tm_especi   tm_especi     @relation(fields: [esc_codi], references: [esc_codi])
+  tc_asign    tc_asign[]
+  tr_repor    tr_repor[]
   tr_metaspei tr_metaspei[]
-  tr_soap   tr_soap[]
-  tr_indic  tr_indic[]
-  tr_incid  tr_incid[]
+  tr_soap     tr_soap[]
+  tr_indic    tr_indic[]
+  tr_incid    tr_incid[]
 }
 
 model tm_ninos {
@@ -113,46 +113,49 @@ model tm_ninos {
   tm_insti     tm_insti  @relation(fields: [ins_codi], references: [ins_codi])
 
   tm_repre_ninos tm_repre_ninos[]
-  tc_sensi tc_sensi[] @relation("sensi_to_ninos")
-  th_perfi th_perfi[]
-  tm_dispo tm_dispo[]
-  tc_umbra tc_umbra[]
-  tc_asign tc_asign[]
-  tr_sesio tr_sesio[]
-  tr_repor tr_repor[]
-  tr_bitac tr_bitac[]
-  tm_activ tm_activ[]
+  tc_sensi       tc_sensi[]       @relation("sensi_to_ninos")
+  th_perfi       th_perfi[]
+  tm_dispo       tm_dispo[]
+  tc_umbra       tc_umbra[]
+  tc_asign       tc_asign[]
+  tr_sesio       tr_sesio[]
+  tr_repor       tr_repor[]
+  tr_bitac       tr_bitac[]
+  tm_activ       tm_activ[]
   tc_activ_ninos tc_activ_ninos[]
-  tr_metaspei tr_metaspei[]
-  tm_conse tm_conse[]
-  tr_soap  tr_soap[]
-  tr_indic tr_indic[]
-  tr_incid tr_incid[]
+  tr_metaspei    tr_metaspei[]
+  tm_conse       tm_conse[]
+  tr_soap        tr_soap[]
+  tr_indic       tr_indic[]
+  tr_incid       tr_incid[]
+
+  @@index([ins_codi])
 }
 
-  model tm_repre {
-    rep_cod  String @id @db.VarChar(10)
-    usu_codi String @unique @db.VarChar(10)
-    rep_cedu String? @unique @db.VarChar(11)
-    rep_nomb String @db.VarChar(50)
-    rep_apel String @db.VarChar(50)
-    rep_rela String @db.VarChar(20)
-    rep_telf String @db.VarChar(15)
-    rep_foto String? @db.Text
+model tm_repre {
+  rep_cod  String  @id @db.VarChar(10)
+  usu_codi String  @unique @db.VarChar(10)
+  rep_cedu String? @unique @db.VarChar(11)
+  rep_nomb String  @db.VarChar(50)
+  rep_apel String  @db.VarChar(50)
+  rep_rela String  @db.VarChar(20)
+  rep_telf String  @db.VarChar(15)
+  rep_foto String? @db.Text
 
-  tm_usuar        tm_usuar          @relation(fields: [usu_codi], references: [usu_codi])
-  tm_repre_ninos  tm_repre_ninos[]
-  tm_conse        tm_conse[]
+  tm_usuar       tm_usuar         @relation(fields: [usu_codi], references: [usu_codi])
+  tm_repre_ninos tm_repre_ninos[]
+  tm_conse       tm_conse[]
 }
 
 model tm_repre_ninos {
-  rep_cod  String   @db.VarChar(10)
-  nin_codi String   @db.VarChar(10)
+  rep_cod  String @db.VarChar(10)
+  nin_codi String @db.VarChar(10)
 
   tm_repre tm_repre @relation(fields: [rep_cod], references: [rep_cod])
   tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
 
   @@id([rep_cod, nin_codi])
+  @@index([nin_codi])
 }
 
 model tc_sensi {
@@ -248,11 +251,11 @@ model tm_activ {
   act_time Int?
   act_crea DateTime @default(now()) @db.Timestamp()
 
-  tm_categ        tm_categ          @relation(fields: [cat_codi], references: [cat_codi])
-  tm_ninos        tm_ninos?         @relation(fields: [nin_codi], references: [nin_codi])
-  tc_guias        tc_guias[]
-  tr_sesio        tr_sesio[]
-  tc_activ_ninos  tc_activ_ninos[]
+  tm_categ       tm_categ         @relation(fields: [cat_codi], references: [cat_codi])
+  tm_ninos       tm_ninos?        @relation(fields: [nin_codi], references: [nin_codi])
+  tc_guias       tc_guias[]
+  tr_sesio       tr_sesio[]
+  tc_activ_ninos tc_activ_ninos[]
 }
 
 model tc_activ_ninos {
@@ -299,6 +302,9 @@ model tc_asign {
 
   tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
   tm_espec tm_espec @relation(fields: [esp_codi], references: [esp_codi])
+
+  @@index([nin_codi])
+  @@index([esp_codi])
 }
 
 model tr_sesio {
@@ -317,6 +323,10 @@ model tr_sesio {
   tr_telem tr_telem[]
   tr_estad tr_estad[]
   tr_alert tr_alert[]
+
+  @@index([nin_codi])
+  @@index([act_codi])
+  @@index([ses_inic])
 }
 
 model tr_telem {
@@ -329,6 +339,9 @@ model tr_telem {
 
   tr_sesio tr_sesio @relation(fields: [ses_codi], references: [ses_codi])
   tc_confi tc_confi @relation(fields: [con_codi], references: [con_codi])
+
+  @@index([ses_codi])
+  @@index([ses_codi, tel_marc])
 }
 
 model tr_estad {
@@ -338,6 +351,8 @@ model tr_estad {
   est_time DateTime @db.Timestamp()
 
   tr_sesio tr_sesio @relation(fields: [ses_codi], references: [ses_codi])
+
+  @@index([ses_codi])
 }
 
 model tr_alert {
@@ -351,27 +366,33 @@ model tr_alert {
   tm_instr tm_instr @relation(fields: [ins_codi], references: [ins_codi])
 
   tr_feedb tr_feedb[]
+
+  @@index([ses_codi])
+  @@index([ale_time])
 }
 
 model tr_metaspei {
-  met_codi  String   @id @db.VarChar(10)
-  nin_codi  String   @db.VarChar(10)
-  esp_codi  String   @db.VarChar(11)
-  met_desc  String   @db.Text
-  met_trial Int      @default(0)
-  met_ttria Int      @default(20)
-  met_prog  Float    @default(0)
-  met_estd  String   @db.VarChar(20)
-  met_crea  DateTime @default(now())
-  met_categ String?  @db.VarChar(50)
-  met_line  Float?   @db.DoublePrecision
-  met_crit  String?  @db.Text
-  met_obse  String?  @db.Text
+  met_codi  String    @id @db.VarChar(10)
+  nin_codi  String    @db.VarChar(10)
+  esp_codi  String    @db.VarChar(11)
+  met_desc  String    @db.Text
+  met_trial Int       @default(0)
+  met_ttria Int       @default(20)
+  met_prog  Float     @default(0)
+  met_estd  String    @db.VarChar(20)
+  met_crea  DateTime  @default(now())
+  met_categ String?   @db.VarChar(50)
+  met_line  Float?    @db.DoublePrecision
+  met_crit  String?   @db.Text
+  met_obse  String?   @db.Text
   met_fini  DateTime? @db.Date
   met_ffin  DateTime? @db.Date
 
-  tm_ninos  tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
-  tm_espec  tm_espec @relation(fields: [esp_codi], references: [esp_codi])
+  tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
+  tm_espec tm_espec @relation(fields: [esp_codi], references: [esp_codi])
+
+  @@index([nin_codi])
+  @@index([esp_codi])
 }
 
 model tr_soap {
@@ -386,43 +407,54 @@ model tr_soap {
 
   tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
   tm_espec tm_espec @relation(fields: [esp_codi], references: [esp_codi])
+
+  @@index([nin_codi])
+  @@index([esp_codi])
 }
 
 model tr_indic {
-  ind_codi String   @id @db.VarChar(10)
-  nin_codi String   @db.VarChar(10)
-  esp_codi String   @db.VarChar(11)
-  ind_tipo String   @db.VarChar(30)
-  ind_area String   @db.VarChar(50)
-  ind_frec String   @db.VarChar(30)
-  ind_dura String?  @db.VarChar(30)
-  ind_prio String   @db.VarChar(15)
+  ind_codi String    @id @db.VarChar(10)
+  nin_codi String    @db.VarChar(10)
+  esp_codi String    @db.VarChar(11)
+  ind_tipo String    @db.VarChar(30)
+  ind_area String    @db.VarChar(50)
+  ind_frec String    @db.VarChar(30)
+  ind_dura String?   @db.VarChar(30)
+  ind_prio String    @db.VarChar(15)
   ind_vige DateTime? @db.Date
-  ind_desc String   @db.Text
-  ind_leid Boolean  @default(false)
-  ind_crea DateTime @default(now()) @db.Timestamp()
+  ind_desc String    @db.Text
+  ind_leid Boolean   @default(false)
+  ind_crea DateTime  @default(now()) @db.Timestamp()
 
   tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
   tm_espec tm_espec @relation(fields: [esp_codi], references: [esp_codi])
+
+  @@index([nin_codi])
+  @@index([esp_codi])
+  @@index([ind_leid])
 }
 
 model tr_incid {
-  inc_codi String   @id @db.VarChar(10)
-  nin_codi String   @db.VarChar(10)
-  esp_codi String   @db.VarChar(11)
-  inc_tipo String   @db.VarChar(50)
-  inc_dura String   @db.VarChar(20)
-  inc_deto String   @db.VarChar(100)
-  inc_ruti String?  @db.Text
-  inc_seve String   @db.VarChar(20)
-  inc_conse String? @db.Text
-  inc_inter String? @db.Text
-  inc_resu String?  @db.Text
-  inc_obse String?  @db.Text
-  inc_time DateTime @default(now()) @db.Timestamp()
+  inc_codi  String   @id @db.VarChar(10)
+  nin_codi  String   @db.VarChar(10)
+  esp_codi  String   @db.VarChar(11)
+  inc_tipo  String   @db.VarChar(50)
+  inc_dura  String   @db.VarChar(20)
+  inc_deto  String   @db.VarChar(100)
+  inc_ruti  String?  @db.Text
+  inc_seve  String   @db.VarChar(20)
+  inc_conse String?  @db.Text
+  inc_inter String?  @db.Text
+  inc_resu  String?  @db.Text
+  inc_obse  String?  @db.Text
+  inc_time  DateTime @default(now()) @db.Timestamp()
 
   tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
   tm_espec tm_espec @relation(fields: [esp_codi], references: [esp_codi])
+
+  @@index([nin_codi])
+  @@index([esp_codi])
+  @@index([inc_time])
 }
 
 model tr_feedb {
@@ -449,14 +481,17 @@ model tr_repor {
 
   tm_ninos tm_ninos @relation(fields: [rpt_nin], references: [nin_codi])
   tm_espec tm_espec @relation(fields: [rpt_esp], references: [esp_codi])
+
+  @@index([rpt_nin])
+  @@index([rpt_esp])
 }
 
 model tm_admin {
-  adm_codi String @id @db.VarChar(11)
-  usu_codi String @unique @db.VarChar(10)
-  ins_codi String @db.VarChar(11)
-  adm_nomb String @db.VarChar(50)
-  adm_apel String @db.VarChar(50)
+  adm_codi String  @id @db.VarChar(11)
+  usu_codi String  @unique @db.VarChar(10)
+  ins_codi String  @db.VarChar(11)
+  adm_nomb String  @db.VarChar(50)
+  adm_apel String  @db.VarChar(50)
   adm_foto String? @db.Text
 
   tm_usuar tm_usuar @relation(fields: [usu_codi], references: [usu_codi])
@@ -480,29 +515,35 @@ model tr_bitac {
   bit_medi  Boolean?
   bit_diges String?  @db.VarChar(50)
 
-  tm_ninos  tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
+  tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
+
+  @@index([nin_codi])
+  @@index([bit_fech])
 }
 
 model tr_audito {
-  aud_codi  String   @id @db.VarChar(10)
-  usu_codi  String   @db.VarChar(10)
-  aud_tipo  String   @db.VarChar(20)
-  aud_desc  String   @db.Text
-  aud_ip    String?  @db.VarChar(45)
-  aud_time  DateTime @default(now()) @db.Timestamp()
+  aud_codi String   @id @db.VarChar(10)
+  usu_codi String   @db.VarChar(10)
+  aud_tipo String   @db.VarChar(20)
+  aud_desc String   @db.Text
+  aud_ip   String?  @db.VarChar(45)
+  aud_time DateTime @default(now()) @db.Timestamp()
 
-  tm_usuar  tm_usuar @relation(fields: [usu_codi], references: [usu_codi])
+  tm_usuar tm_usuar @relation(fields: [usu_codi], references: [usu_codi])
+
+  @@index([usu_codi])
+  @@index([aud_time])
 }
 
 model tm_passkeys {
-  pk_id        String    @id @db.VarChar(200)
-  usu_codi     String    @db.VarChar(10)
-  pk_nomb      String    @db.VarChar(60)
-  pk_public_key String   @db.Text
-  pk_transports String?  @db.Text
-  pk_counter   Int       @default(0)
-  pk_created   DateTime  @default(now()) @db.Timestamp()
-  pk_last_used DateTime? @db.Timestamp()
+  pk_id         String    @id @db.VarChar(200)
+  usu_codi      String    @db.VarChar(10)
+  pk_nomb       String    @db.VarChar(60)
+  pk_public_key String    @db.Text
+  pk_transports String?   @db.Text
+  pk_counter    Int       @default(0)
+  pk_created    DateTime  @default(now()) @db.Timestamp()
+  pk_last_used  DateTime? @db.Timestamp()
 
   tm_usuar tm_usuar @relation(fields: [usu_codi], references: [usu_codi])
 }
@@ -519,17 +560,20 @@ model tm_conse {
 
   tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
   tm_repre tm_repre @relation(fields: [rep_cod], references: [rep_cod])
+
+  @@index([nin_codi])
+  @@index([rep_cod])
 }
 
 model tm_pref_notif {
-  pnf_usuario           String    @id @db.VarChar(10)
-  alertas_correo        Boolean   @default(true) @map("ale_corr")
-  alertas_push          Boolean   @default(true) @map("ale_push")
-  resumen_diario        Boolean   @default(true) @map("res_diar")
-  recordatorios_sesiones Boolean  @default(true) @map("rec_sesi")
-  novedades             Boolean   @default(false) @map("noved")
-  pnf_creac             DateTime  @default(now()) @db.Timestamp()
-  pnf_actua             DateTime? @db.Timestamp()
+  pnf_usuario            String    @id @db.VarChar(10)
+  alertas_correo         Boolean   @default(true) @map("ale_corr")
+  alertas_push           Boolean   @default(true) @map("ale_push")
+  resumen_diario         Boolean   @default(true) @map("res_diar")
+  recordatorios_sesiones Boolean   @default(true) @map("rec_sesi")
+  novedades              Boolean   @default(false) @map("noved")
+  pnf_creac              DateTime  @default(now()) @db.Timestamp()
+  pnf_actua              DateTime? @db.Timestamp()
 
   tm_usuar tm_usuar @relation(fields: [pnf_usuario], references: [usu_codi])
 

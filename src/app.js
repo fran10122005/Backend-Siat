@@ -47,11 +47,13 @@ app.use(cors({
 }));
 
 const { globalLimiter } = require('./middleware/rateLimiter');
+const xssSanitizer = require('./middleware/xssSanitizer');
 
 // Middlewares globales
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(xssSanitizer);
 app.use('/api', globalLimiter);
 
 // Documentación Swagger API
