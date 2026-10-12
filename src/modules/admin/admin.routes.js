@@ -49,5 +49,6 @@ router.patch('/especialidades/:esc_codi/estado', validateSchema(adminSchemas.tog
 router.get('/reportes/programados', adminController.getReporteSchedule);
 router.post('/reportes/programados', adminController.saveReporteSchedule);
 router.post('/reportes/enviar-ahora', adminController.enviarReporteAhora);
+router.post('/reportes/ejecutar-programado', adminController.ejecutarReporteProgramado);
 
 module.exports = router;

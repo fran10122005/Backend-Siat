@@ -4,6 +4,7 @@ const env = require('./src/config/env');
 const prisma = require('./src/config/db');
 const logger = require('./src/utils/logger');
 const { initSocketServer } = require('./src/services/socket.service');
+const { startReportScheduler, stopReportScheduler } = require('./src/services/reportScheduler.service');
 
 const PORT = env.PORT || 3000;
 
@@ -11,6 +12,9 @@ const server = http.createServer(app);
 
 // Inicializar Socket.IO mediante el servicio dedicado
 const io = initSocketServer(server, app);
+
+// Inicializar el Scheduler autónomo de reportes ejecutivos periódicos
+startReportScheduler();
 
 // Iniciar servidor HTTP
 server.listen(PORT, () => {
@@ -21,6 +25,8 @@ server.listen(PORT, () => {
 const gracefulShutdown = (signal) => {
   logger.info(`⚠️ Señal ${signal} recibida. Iniciando cierre ordenado de SIAT Backend...`);
   
+  stopReportScheduler();
+
   if (io) {
     io.close(() => {
       logger.info('🔌 Servidor Socket.IO cerrado.');

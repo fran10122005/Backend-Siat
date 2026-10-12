@@ -191,12 +191,12 @@ const addNinoDocumento = catchAsync(async (req, res) => {
 });
 
 const getReporteSchedule = catchAsync(async (req, res) => {
-  const config = adminService.getReporteSchedule();
+  const config = await adminService.getReporteSchedule();
   res.json({ success: true, data: config });
 });
 
 const saveReporteSchedule = catchAsync(async (req, res) => {
-  const updated = adminService.saveReporteSchedule(req.body);
+  const updated = await adminService.saveReporteSchedule(req.body);
   await adminService.logAudit(req.user.usu_codi, 'INFO', 'Configuración de reporte programado actualizada', req.ip);
   res.json({ success: true, data: updated });
 });
@@ -205,6 +205,15 @@ const enviarReporteAhora = catchAsync(async (req, res) => {
   const result = await adminService.enviarReporteAhora(req.body);
   await adminService.logAudit(req.user.usu_codi, 'INFO', `Reporte enviado manualmente a ${result.sentTo.join(', ')}`, req.ip);
   res.json({ success: true, message: 'Reporte enviado exitosamente', data: result });
+});
+
+const ejecutarReporteProgramado = catchAsync(async (req, res) => {
+  const force = req.query.force === 'true' || req.body?.force === true;
+  const result = await adminService.checkAndExecuteScheduledReport(force);
+  if (result.executed) {
+    await adminService.logAudit(req.user?.usu_codi || 'SISTEMA', 'INFO', `Envío programado ejecutado a ${result.sentTo.join(', ')}`, req.ip);
+  }
+  res.json({ success: true, data: result });
 });
 
 module.exports = {
@@ -233,5 +242,6 @@ module.exports = {
   addNinoDocumento,
   getReporteSchedule,
   saveReporteSchedule,
-  enviarReporteAhora
+  enviarReporteAhora,
+  ejecutarReporteProgramado
 };

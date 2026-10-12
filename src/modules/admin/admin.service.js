@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { generateId } = require('../../utils/idGenerator');
+const logger = require('../../utils/logger');
 
 // Contraseña provisional criptográficamente aleatoria (sin caracteres ambiguos ni confusos)
 const generateRandomPassword = (length = 12) => {
@@ -799,35 +800,208 @@ class AdminService {
     });
   }
 
-  getReporteSchedule() {
-    const configPath = path.resolve(__dirname, '../../config/scheduled_reports.json');
-    if (!fs.existsSync(configPath)) {
-      return {
-        enabled: false,
-        frequency: 'weekly',
-        day: 'lunes',
-        time: '08:00',
-        email: '',
-        additionalEmails: '',
-        subject: 'Reporte Ejecutivo de Gestión Clínica — SIAT',
-        modules: { metricas: true, pacientes: true, especialistas: true, auditoria: true }
-      };
-    }
+  async getReporteSchedule() {
     try {
-      return JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    } catch {
-      return { enabled: false, frequency: 'weekly', day: 'lunes', time: '08:00', email: '' };
+      const record = await prisma.tm_reporte_prog.findUnique({
+        where: { rpr_id: 'DEFAULT' }
+      });
+      if (record) {
+        return {
+          enabled: Boolean(record.enabled),
+          frequency: record.frequency || 'weekly',
+          day: record.day || 'lunes',
+          time: record.time || '08:00',
+          email: record.email || '',
+          additionalEmails: record.additionalEmails || '',
+          subject: record.subject || 'Reporte Ejecutivo de Gestión Clínica — SIAT',
+          modules: record.modules || { metricas: true, pacientes: true, especialistas: true, auditoria: true },
+          last_sent: record.last_sent,
+          updated_at: record.updated_at
+        };
+      }
+    } catch (err) {
+      logger.error('Error al leer tm_reporte_prog desde BD:', { error: err.message });
     }
+
+    // Fallback inicial si no existe aún en la base de datos
+    const fallback = {
+      enabled: false,
+      frequency: 'weekly',
+      day: 'lunes',
+      time: '08:00',
+      email: '',
+      additionalEmails: '',
+      subject: 'Reporte Ejecutivo de Gestión Clínica — SIAT',
+      modules: { metricas: true, pacientes: true, especialistas: true, auditoria: true }
+    };
+
+    // Intentar rescatar archivo legacy si existía previamente
+    try {
+      const configPath = path.resolve(__dirname, '../../config/scheduled_reports.json');
+      if (fs.existsSync(configPath)) {
+        const fileData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        if (fileData) {
+          await this.saveReporteSchedule(fileData).catch(() => {});
+          return {
+            ...fallback,
+            ...fileData
+          };
+        }
+      }
+    } catch {}
+
+    return fallback;
   }
 
-  saveReporteSchedule(config) {
-    const configPath = path.resolve(__dirname, '../../config/scheduled_reports.json');
-    const updated = {
-      ...config,
-      updatedAt: new Date().toISOString()
+  async saveReporteSchedule(config) {
+    const payload = {
+      enabled: Boolean(config.enabled),
+      frequency: config.frequency || 'weekly',
+      day: config.day || 'lunes',
+      time: config.time || '08:00',
+      email: config.email || '',
+      additionalEmails: config.additionalEmails || '',
+      subject: config.subject || 'Reporte Ejecutivo de Gestión Clínica — SIAT',
+      modules: config.modules || { metricas: true, pacientes: true, especialistas: true, auditoria: true }
     };
-    fs.writeFileSync(configPath, JSON.stringify(updated, null, 2), 'utf8');
-    return updated;
+
+    const record = await prisma.tm_reporte_prog.upsert({
+      where: { rpr_id: 'DEFAULT' },
+      update: {
+        ...payload,
+        updated_at: new Date()
+      },
+      create: {
+        rpr_id: 'DEFAULT',
+        ...payload
+      }
+    });
+
+    // Guardar respaldo local preventivo si el disco lo permite
+    try {
+      const configPath = path.resolve(__dirname, '../../config/scheduled_reports.json');
+      fs.writeFileSync(configPath, JSON.stringify({ ...payload, updatedAt: record.updated_at }, null, 2), 'utf8');
+    } catch {}
+
+    return {
+      ...payload,
+      last_sent: record.last_sent,
+      updated_at: record.updated_at
+    };
+  }
+
+  async checkAndExecuteScheduledReport(force = false) {
+    const config = await this.getReporteSchedule();
+    if (!config) return { executed: false, reason: 'No config found' };
+    if (!force && (!config.enabled || !config.email)) {
+      return { executed: false, reason: 'Programación inactiva o sin correo configurado' };
+    }
+
+    const now = new Date();
+    // Obtener componentes de fecha en zona horaria de Venezuela (UTC-4)
+    const venezuelaFormatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Caracas',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    
+    const dateParts = venezuelaFormatter.formatToParts(now);
+    const getPart = (type) => dateParts.find(p => p.type === type)?.value;
+    const year = parseInt(getPart('year'), 10);
+    const month = parseInt(getPart('month'), 10);
+    const dayOfMonth = parseInt(getPart('day'), 10);
+    const hour = parseInt(getPart('hour'), 10);
+    const minute = parseInt(getPart('minute'), 10);
+    const curMinutes = hour * 60 + minute;
+
+    const dayOfWeek = new Date(now.toLocaleString('en-US', { timeZone: 'America/Caracas' })).getDay();
+
+    const [targetH, targetM] = (config.time || '08:00').split(':').map(Number);
+    const targetMinutes = (targetH || 0) * 60 + (targetM || 0);
+
+    if (!force) {
+      // 1. Debe haber alcanzado la hora configurada (dentro de una ventana de 30 minutos)
+      if (curMinutes < targetMinutes) {
+        return { executed: false, reason: 'Aún no es la hora de envío programada' };
+      }
+      if (curMinutes - targetMinutes > 30) {
+        return { executed: false, reason: 'Fuera de la ventana de horario programado' };
+      }
+
+      // 2. Frecuencia
+      const SPANISH_DAYS = {
+        domingo: 0,
+        lunes: 1,
+        martes: 2,
+        miércoles: 3,
+        miercoles: 3,
+        jueves: 4,
+        viernes: 5,
+        sábado: 6,
+        sabado: 6
+      };
+
+      if (config.frequency === 'weekly') {
+        const targetDayIdx = SPANISH_DAYS[String(config.day || 'lunes').toLowerCase()];
+        if (targetDayIdx === undefined || dayOfWeek !== targetDayIdx) {
+          return { executed: false, reason: 'No coincide el día de la semana programado' };
+        }
+      } else if (config.frequency === 'monthly') {
+        if (dayOfMonth !== 1) {
+          return { executed: false, reason: 'No es el primer día del mes' };
+        }
+      }
+
+      // 3. Ya enviado en este ciclo
+      if (config.last_sent) {
+        const lastSentDate = new Date(config.last_sent);
+        const lastSentParts = venezuelaFormatter.formatToParts(lastSentDate);
+        const getLsPart = (type) => lastSentParts.find(p => p.type === type)?.value;
+        const lsYear = parseInt(getLsPart('year'), 10);
+        const lsMonth = parseInt(getLsPart('month'), 10);
+        const lsDay = parseInt(getLsPart('day'), 10);
+
+        if (config.frequency === 'daily') {
+          if (lsYear === year && lsMonth === month && lsDay === dayOfMonth) {
+            return { executed: false, reason: 'Ya fue enviado hoy' };
+          }
+        } else if (config.frequency === 'weekly') {
+          const diffDays = Math.floor((now.getTime() - lastSentDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays < 5) {
+            return { executed: false, reason: 'Ya fue enviado en el ciclo semanal actual' };
+          }
+        } else if (config.frequency === 'monthly') {
+          if (lsYear === year && lsMonth === month) {
+            return { executed: false, reason: 'Ya fue enviado este mes' };
+          }
+        }
+      }
+    }
+
+    // Ejecutar envío
+    logger.info('🚀 Ejecutando envío de reporte programado para:', { email: config.email, frequency: config.frequency });
+    const sendResult = await this.enviarReporteAhora({
+      email: config.email,
+      additionalEmails: config.additionalEmails,
+      subject: config.subject,
+      modules: config.modules
+    });
+
+    // Actualizar last_sent en base de datos
+    await prisma.tm_reporte_prog.updateMany({
+      where: { rpr_id: 'DEFAULT' },
+      data: { last_sent: new Date() }
+    });
+
+    return {
+      executed: true,
+      sentTo: sendResult.sentTo,
+      timestamp: new Date()
+    };
   }
 
   async compileReporteHtml(modulesConfig, customSubject) {

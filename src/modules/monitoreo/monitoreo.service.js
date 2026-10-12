@@ -196,6 +196,15 @@ class MonitoreoService {
         try {
           const representante = sesion.tm_ninos.tm_repre_ninos[0]?.tm_repre;
           if (representante && representante.usu_codi) {
+            // Verificar si el representante tiene activada la preferencia de alertas por correo
+            const pref = await prisma.tm_pref_notif.findUnique({
+              where: { pnf_usuario: representante.usu_codi }
+            });
+            if (pref && pref.alertas_correo === false) {
+              // El representante desactivó explícitamente recibir alertas por correo
+              return { telemetria, alerta };
+            }
+
             const userRep = await prisma.tm_usuar.findUnique({ where: { usu_codi: representante.usu_codi } });
             if (userRep && userRep.usu_crro) {
               const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';

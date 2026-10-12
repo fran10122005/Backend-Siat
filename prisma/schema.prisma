@@ -579,3 +579,19 @@ model tm_pref_notif {
 
   @@map("tm_pref_notif")
 }
+
+model tm_reporte_prog {
+  rpr_id           String    @id @default("DEFAULT") @db.VarChar(20)
+  enabled          Boolean   @default(false)
+  frequency        String    @default("weekly") @db.VarChar(20)
+  day              String    @default("lunes") @db.VarChar(20)
+  time             String    @default("08:00") @db.VarChar(10)
+  email            String    @default("") @db.VarChar(100)
+  additionalEmails String?   @db.Text
+  subject          String    @default("Reporte Ejecutivo de Gestión Clínica — SIAT") @db.VarChar(200)
+  modules          Json?
+  last_sent        DateTime? @db.Timestamp()
+  updated_at       DateTime  @default(now()) @updatedAt @db.Timestamp()
+
+  @@map("tm_reporte_prog")
+}

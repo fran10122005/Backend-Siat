@@ -75,4 +75,44 @@ describe('AdminController', () => {
       expect(res.json).toHaveBeenCalledWith({ data: mockAsign });
     });
   });
+
+  describe('reportes programados', () => {
+    test('getReporteSchedule retorna la configuración persistida', async () => {
+      const mockConfig = { enabled: true, frequency: 'weekly', email: 'admin@funauta.org' };
+      adminService.getReporteSchedule.mockResolvedValue(mockConfig);
+
+      await adminController.getReporteSchedule(req, res);
+
+      expect(adminService.getReporteSchedule).toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith({ success: true, data: mockConfig });
+    });
+
+    test('saveReporteSchedule guarda configuración y registra auditoría', async () => {
+      const mockUpdated = { enabled: true, frequency: 'daily', email: 'director@funauta.org' };
+      req.body = mockUpdated;
+      req.user = { usu_codi: 'U001' };
+      req.ip = '127.0.0.1';
+      adminService.saveReporteSchedule.mockResolvedValue(mockUpdated);
+
+      await adminController.saveReporteSchedule(req, res);
+
+      expect(adminService.saveReporteSchedule).toHaveBeenCalledWith(mockUpdated);
+      expect(adminService.logAudit).toHaveBeenCalledWith('U001', 'INFO', expect.any(String), '127.0.0.1');
+      expect(res.json).toHaveBeenCalledWith({ success: true, data: mockUpdated });
+    });
+
+    test('ejecutarReporteProgramado ejecuta chequeo y envía reporte', async () => {
+      req.query = { force: 'true' };
+      req.user = { usu_codi: 'U001' };
+      req.ip = '127.0.0.1';
+      const mockResult = { executed: true, sentTo: ['admin@funauta.org'] };
+      adminService.checkAndExecuteScheduledReport.mockResolvedValue(mockResult);
+
+      await adminController.ejecutarReporteProgramado(req, res);
+
+      expect(adminService.checkAndExecuteScheduledReport).toHaveBeenCalledWith(true);
+      expect(adminService.logAudit).toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith({ success: true, data: mockResult });
+    });
+  });
 });
