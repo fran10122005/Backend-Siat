@@ -112,19 +112,23 @@ async function evaluateHealth(appInstance) {
   return { status, services };
 }
 
-// Endpoint público de healthcheck (solo retorna status mínimo para no filtrar detalles internos)
-app.get('/api/health', async (req, res) => {
+// Handler compartido para endpoint de salud
+const handleHealth = async (req, res) => {
   try {
     const { status } = await evaluateHealth(req.app);
     const httpCode = status === 'unhealthy' ? 503 : 200;
-    res.status(httpCode).json({ status });
+    res.status(httpCode).json({ status, version: 'v1' });
   } catch (err) {
     res.status(503).json({ status: 'unhealthy' });
   }
-});
+};
 
-// Endpoint detallado de healthcheck (protegido por header X-Healthcheck-Token)
-app.get('/api/health/detail', async (req, res) => {
+// Endpoint público de healthcheck (compatible con /api/health y /api/v1/health)
+app.get('/api/health', handleHealth);
+app.get('/api/v1/health', handleHealth);
+
+// Handler compartido para healthcheck detallado
+const handleHealthDetail = async (req, res) => {
   const configuredToken = process.env.HEALTHCHECK_TOKEN;
   if (!configuredToken) {
     return res.status(404).json({ error: 'Endpoint no disponible' });
@@ -150,8 +154,10 @@ app.get('/api/health/detail', async (req, res) => {
       error: err.message
     });
   }
-});
+};
 
+app.get('/api/health/detail', handleHealthDetail);
+app.get('/api/v1/health/detail', handleHealthDetail);
 
 const authRoutes = require('./modules/auth/auth.routes');
 const passkeyRoutes = require('./modules/passkey/passkey.routes');
@@ -165,17 +171,35 @@ const consentimientoRoutes = require('./modules/consentimiento/consentimiento.ro
 const especialistaRoutes = require('./modules/especialista/especialista.routes');
 const errorHandler = require('./middleware/errorHandler');
 
-// Rutas de modulos
-app.use('/api/auth', authRoutes);
-app.use('/api/auth', passkeyRoutes);
-app.use('/api/ninos', ninosRoutes);
-app.use('/api/sesiones', sesionesRoutes);
-app.use('/api/monitoreo', monitoreoRoutes);
-app.use('/api/reportes', reportesRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/metas', metasRoutes);
-app.use('/api/consentimiento', consentimientoRoutes);
-app.use('/api/especialista', especialistaRoutes);
+// Router v1 — Estándar Internacional REST API (Versioned API)
+const v1Router = express.Router();
+
+// Endpoints canónicos internacionales en inglés
+v1Router.use('/auth', authRoutes);
+v1Router.use('/auth', passkeyRoutes);
+v1Router.use('/patients', ninosRoutes);
+v1Router.use('/sessions', sesionesRoutes);
+v1Router.use('/telemetry', monitoreoRoutes);
+v1Router.use('/reports', reportesRoutes);
+v1Router.use('/admin', adminRoutes);
+v1Router.use('/goals', metasRoutes);
+v1Router.use('/consent', consentimientoRoutes);
+v1Router.use('/specialists', especialistaRoutes);
+
+// Aliases en español en v1 para máxima compatibilidad
+v1Router.use('/ninos', ninosRoutes);
+v1Router.use('/sesiones', sesionesRoutes);
+v1Router.use('/monitoreo', monitoreoRoutes);
+v1Router.use('/reportes', reportesRoutes);
+v1Router.use('/metas', metasRoutes);
+v1Router.use('/consentimiento', consentimientoRoutes);
+v1Router.use('/especialista', especialistaRoutes);
+
+// Montar endpoints bajo el estándar internacional /api/v1
+app.use('/api/v1', v1Router);
+
+// Retrocompatibilidad 100%: Montar también directamente bajo /api
+app.use('/api', v1Router);
 
 // Manejo de rutas no encontradas
 app.use((req, res, next) => {
