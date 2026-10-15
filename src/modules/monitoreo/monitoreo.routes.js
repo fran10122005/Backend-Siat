@@ -26,7 +26,6 @@ router.post(
   monitoreoController.recibirTelemetria
 );
 
-router.get('/simular-estado', authenticate, monitoreoController.obtenerEstadoSimulacion);
-router.post('/simular-estado', authenticate, monitoreoController.establecerEstadoSimulacion);
+
 
 module.exports = router;
