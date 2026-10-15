@@ -16,6 +16,15 @@ router.post(
   telemetriaNinoLimiter,
   monitoreoController.recibirTelemetria
 );
+// English alias for the same telemetry endpoint
+router.post(
+  '/telemetry',
+  telemetriaIpLimiter,
+  authenticate,
+  validateSchema(schemas.telemetriaSchema),
+  telemetriaNinoLimiter,
+  monitoreoController.recibirTelemetria
+);
 
 router.get('/simular-estado', authenticate, monitoreoController.obtenerEstadoSimulacion);
 router.post('/simular-estado', authenticate, monitoreoController.establecerEstadoSimulacion);
