@@ -193,13 +193,18 @@ function initSocketServer(server, app) {
           hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
         }).format(new Date());
 
+        const source = payload.source || 'BLE_DIRECT';
+        const defaultDevice = source === 'HEALTH_CONNECT' ? 'Health Connect' : 'Smartwatch BLE';
+        const deviceName = payload.deviceName || defaultDevice;
+
         const enrichedPayload = {
           nin_codi: targetChild,
           bpm,
           stress,
           mov,
           time: timeStr,
-          deviceName: payload.deviceName || 'Smartwatch BLE',
+          source,
+          deviceName,
           ses_codi: payload.ses_codi || null
         };
 
@@ -235,7 +240,9 @@ function initSocketServer(server, app) {
                   con_codi: config.con_codi,
                   tel_regi: bpm,
                   tel_marc: Math.floor(secondsElapsed / 10),
-                  tel_calid: 99.0
+                  tel_calid: 99.0,
+                  tel_sour: source,
+                  tel_devn: deviceName
                 }
               }).catch(err => {
                 logger.warn('Aviso al guardar muestra tr_telem:', { error: err.message });

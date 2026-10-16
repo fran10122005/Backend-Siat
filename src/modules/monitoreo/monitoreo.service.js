@@ -118,6 +118,8 @@ class MonitoreoService {
     let stress = data.tel_stress || 15;
     let is_alert = data.is_alert;
     let ale_meto = data.ale_meto;
+    const source = data.source || 'BLE_DIRECT';
+    const deviceName = data.deviceName || null;
 
     if (this.simulatedCrisisMode) {
       bpm = Math.floor(Math.random() * (132 - 120 + 1) + 120);
@@ -146,7 +148,9 @@ class MonitoreoService {
         con_codi: data.con_codi,
         tel_regi: bpm,
         tel_marc: data.tel_marc,
-        tel_calid: data.tel_calid
+        tel_calid: data.tel_calid,
+        tel_sour: source,
+        tel_devn: deviceName
       }
     });
 
@@ -159,7 +163,9 @@ class MonitoreoService {
         bpm: bpm,
         mov: mov,
         stress: stress,
-        time: time
+        time: time,
+        source: source,
+        deviceName: deviceName
       });
     }
 

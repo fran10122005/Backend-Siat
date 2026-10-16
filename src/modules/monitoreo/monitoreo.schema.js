@@ -9,6 +9,8 @@ const telemetriaSchema = z.object({
     tel_calid: z.number().min(0).max(100).optional(),
     tel_mov: z.number().min(0).max(5).optional(),
     tel_stress: z.number().min(0).max(100).optional(),
+    source: z.enum(['BLE_DIRECT', 'HEALTH_CONNECT', 'SIMULATOR']).optional().default('BLE_DIRECT'),
+    deviceName: z.string().max(100).optional(),
     // Campos opcionales si la lectura generó una alerta
     is_alert: z.boolean().optional(),
     ins_codi: z.string().max(10).optional(),

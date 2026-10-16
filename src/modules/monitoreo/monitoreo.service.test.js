@@ -38,16 +38,53 @@ describe('MonitoreoService.procesarTelemetria', () => {
     mockPrisma.tr_sesio.findUnique.mockResolvedValue(baseSession);
     mockPrisma.tc_confi.findUnique.mockResolvedValue({ con_codi: 'C1' });
     mockPrisma.tr_telem.create.mockImplementation(async (args) => ({ tel_codi: args.data.tel_codi }));
-    const io = { to: jest.fn(() => ({ emit: jest.fn() })) };
+    let emittedEvent = null;
+    let emittedPayload = null;
+    const io = { to: jest.fn(() => ({ emit: jest.fn((evt, payload) => { emittedEvent = evt; emittedPayload = payload; }) })) };
 
     const result = await monitoreoService.procesarTelemetria({
       ses_codi: 'S1', con_codi: 'C1', tel_regi: 80, tel_marc: 999, tel_calid: 99.9, tel_mov: 1.0, tel_stress: 15
     }, io);
 
-    expect(mockPrisma.tr_telem.create).toHaveBeenCalled();
+    expect(mockPrisma.tr_telem.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        tel_regi: 80,
+        tel_sour: 'BLE_DIRECT',
+        tel_devn: null
+      })
+    }));
     expect(mockPrisma.tr_alert.create).not.toHaveBeenCalled();
     expect(io.to).toHaveBeenCalledWith('child:N1');
+    expect(emittedEvent).toBe('new_telemetry');
+    expect(emittedPayload.source).toBe('BLE_DIRECT');
     expect(result.telemetria).toBeTruthy();
+  });
+
+  it('procesa telemetría con source HEALTH_CONNECT y deviceName personalizado', async () => {
+    mockPrisma.tr_sesio.findUnique.mockResolvedValue(baseSession);
+    mockPrisma.tc_confi.findUnique.mockResolvedValue({ con_codi: 'C1' });
+    mockPrisma.tr_telem.create.mockImplementation(async (args) => ({ tel_codi: args.data.tel_codi }));
+    let emittedPayload = null;
+    const io = { to: jest.fn(() => ({ emit: jest.fn((evt, payload) => { emittedPayload = payload; }) })) };
+
+    await monitoreoService.procesarTelemetria({
+      ses_codi: 'S1',
+      con_codi: 'C1',
+      tel_regi: 88,
+      tel_marc: 999,
+      source: 'HEALTH_CONNECT',
+      deviceName: 'Samsung Galaxy Watch'
+    }, io);
+
+    expect(mockPrisma.tr_telem.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        tel_regi: 88,
+        tel_sour: 'HEALTH_CONNECT',
+        tel_devn: 'Samsung Galaxy Watch'
+      })
+    }));
+    expect(emittedPayload.source).toBe('HEALTH_CONNECT');
+    expect(emittedPayload.deviceName).toBe('Samsung Galaxy Watch');
   });
 
   it('crea telemetría y alerta y emite new_alert cuando hay alerta', async () => {

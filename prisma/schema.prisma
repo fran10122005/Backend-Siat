@@ -330,12 +330,14 @@ model tr_sesio {
 }
 
 model tr_telem {
-  tel_codi  String @id @db.VarChar(10)
-  ses_codi  String @db.VarChar(10)
-  con_codi  String @db.VarChar(10)
-  tel_regi  Float  @db.DoublePrecision
+  tel_codi  String  @id @db.VarChar(10)
+  ses_codi  String  @db.VarChar(10)
+  con_codi  String  @db.VarChar(10)
+  tel_regi  Float   @db.DoublePrecision
   tel_marc  Int
-  tel_calid Float? @db.DoublePrecision
+  tel_calid Float?  @db.DoublePrecision
+  tel_sour  String? @default("BLE_DIRECT") @db.VarChar(20)
+  tel_devn  String? @db.VarChar(100)
 
   tr_sesio tr_sesio @relation(fields: [ses_codi], references: [ses_codi])
   tc_confi tc_confi @relation(fields: [con_codi], references: [con_codi])
