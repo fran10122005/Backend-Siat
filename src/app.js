@@ -54,11 +54,6 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(xssSanitizer);
-app.use('/api', globalLimiter);
-
-// Documentación Swagger API
-const setupSwagger = require('./config/swagger');
-setupSwagger(app);
 
 // Helper para evaluar estado de salud de dependencias del sistema
 async function evaluateHealth(appInstance) {
@@ -123,10 +118,6 @@ const handleHealth = async (req, res) => {
   }
 };
 
-// Endpoint público de healthcheck (compatible con /api/health y /api/v1/health)
-app.get('/api/health', handleHealth);
-app.get('/api/v1/health', handleHealth);
-
 // Handler compartido para healthcheck detallado
 const handleHealthDetail = async (req, res) => {
   const configuredToken = process.env.HEALTHCHECK_TOKEN;
@@ -156,8 +147,18 @@ const handleHealthDetail = async (req, res) => {
   }
 };
 
+// Endpoints públicos de healthcheck (registrados antes del rateLimiter para que nunca sean bloqueados)
+app.get('/api/health', handleHealth);
+app.get('/api/v1/health', handleHealth);
 app.get('/api/health/detail', handleHealthDetail);
 app.get('/api/v1/health/detail', handleHealthDetail);
+
+// Rate limiting global para el resto del API
+app.use('/api', globalLimiter);
+
+// Documentación Swagger API
+const setupSwagger = require('./config/swagger');
+setupSwagger(app);
 
 const authRoutes = require('./modules/auth/auth.routes');
 const passkeyRoutes = require('./modules/passkey/passkey.routes');

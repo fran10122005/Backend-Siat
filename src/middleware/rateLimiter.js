@@ -4,15 +4,27 @@ const rateLimit = require('express-rate-limit');
 // En entorno de pruebas (test) se omite para no interferir con los tests automatizados de Jest.
 const skipInTest = () => process.env.NODE_ENV === 'test' || process.env.DISABLE_RATE_LIMIT === 'true';
 
-// Límite global por IP: protege contra abuso general del API (300 req / 15 min)
+// Excluye rutas que tienen sus propios limitadores o son de monitoreo de disponibilidad
+const shouldSkipGlobal = (req) => {
+  if (skipInTest()) return true;
+  const path = req.originalUrl || req.url || '';
+  // 1. Endpoints de salud y disponibilidad (Render, Uptime, frontend splash) nunca deben ser bloqueados
+  if (path.includes('/health')) return true;
+  // 2. Endpoints de telemetría IoT poseen sus propios limitadores específicos de alta frecuencia
+  if (path.includes('/monitoreo/telemetria') || path.includes('/telemetry')) return true;
+  return false;
+};
+
+// Límite global por IP: protege contra abuso general del API (1500 req / 15 min por defecto)
+const globalLimitMax = parseInt(process.env.RATE_LIMIT_GLOBAL_MAX, 10) || 1500;
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  limit: 300,
+  limit: globalLimitMax,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   statusCode: 429,
   message: { status: 'error', error: 'Demasiadas solicitudes. Intenta de nuevo en unos minutos.' },
-  skip: skipInTest
+  skip: shouldSkipGlobal
 });
 
 // Límite estricto para endpoints sensibles (login, registro, recuperación de contraseña, passkeys)
