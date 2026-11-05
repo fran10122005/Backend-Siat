@@ -21,6 +21,9 @@ class AuthService {
       throw new Error('Credenciales inválidas');
     }
 
+    // Determinar si es el primer inicio de sesión del usuario
+    const primer_ingreso = !usuario.usu_logi;
+
     // Actualizar ultimo login
     await prisma.tm_usuar.update({
       where: { usu_codi: usuario.usu_codi },
@@ -50,7 +53,16 @@ class AuthService {
       userName = 'Director SIAT';
     }
 
-    return { token, user: { usu_codi: usuario.usu_codi, usu_crro: usuario.usu_crro, rol_codi: usuario.rol_codi, nombre: userName } };
+    return {
+      token,
+      user: {
+        usu_codi: usuario.usu_codi,
+        usu_crro: usuario.usu_crro,
+        rol_codi: usuario.rol_codi,
+        nombre: userName,
+        primer_ingreso,
+      },
+    };
   }
 
   async registerRepresentante(data) {
