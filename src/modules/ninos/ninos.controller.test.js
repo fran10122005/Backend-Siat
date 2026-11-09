@@ -104,4 +104,22 @@ describe('NinosController', () => {
       expect(res.json).toHaveBeenCalledWith({ data: mockFicha });
     });
   });
+
+  describe('actualizarBitacora', () => {
+    test('actualiza bitácora existente para el representante', async () => {
+      const mockUpdated = { bit_codi: 'B001', bit_anim: 'Muy Calmo' };
+      ninosService.actualizarBitacora.mockResolvedValue(mockUpdated);
+
+      req.params = { bit_codi: 'B001' };
+      req.body = { mood: 'Muy Calmo' };
+      await ninosController.actualizarBitacora(req, res);
+
+      expect(ninosService.actualizarBitacora).toHaveBeenCalledWith('U001', 'B001', req.body);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'Bitácora actualizada exitosamente',
+        data: mockUpdated
+      });
+    });
+  });
 });

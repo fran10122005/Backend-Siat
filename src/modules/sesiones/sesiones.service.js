@@ -4,6 +4,7 @@ const AppError = require('../../utils/AppError');
 
 const ACTIVIDAD_ESTADOS = ['Activa', 'Inactiva'];
 const ACTIVIDAD_DIFICULTAD = ['Baja', 'Media', 'Alta'];
+const ACTIVIDAD_VISIBILIDAD = ['ESPECIALISTA', 'AMBOS'];
 const ASIGNACION_ESTADOS = ['Activa', 'Completada', 'Cancelada'];
 
 class SesionesService {
@@ -92,27 +93,43 @@ class SesionesService {
 
   // ========================== ACTIVIDADES ==========================
 
-  async listarActividades({ nin_codi, cat_codi, estado, dificultad, busqueda, pagina = 1, limite = 10 }) {
+  async listarActividades({ nin_codi, cat_codi, estado, dificultad, visibilidad, busqueda, rol_codi, pagina = 1, limite = 10 } = {}) {
     const where = {};
     if (cat_codi) where.cat_codi = cat_codi;
     if (estado) where.act_estd = estado;
     if (dificultad) where.act_difi = dificultad;
 
+    if (rol_codi === 'ROL_REP') {
+      where.act_visib = 'AMBOS';
+    } else if (visibilidad) {
+      where.act_visib = visibilidad;
+    }
+
+    const andConditions = [];
     if (busqueda) {
-      where.OR = [
-        { act_trea: { contains: busqueda, mode: 'insensitive' } },
-        { act_desc: { contains: busqueda, mode: 'insensitive' } },
-        { act_meta: { contains: busqueda, mode: 'insensitive' } },
-      ];
+      andConditions.push({
+        OR: [
+          { act_trea: { contains: busqueda, mode: 'insensitive' } },
+          { act_desc: { contains: busqueda, mode: 'insensitive' } },
+          { act_meta: { contains: busqueda, mode: 'insensitive' } },
+        ],
+      });
     }
 
     if (nin_codi) {
-      where.OR = [
-        ...(where.OR || []),
-        { nin_codi: nin_codi },
-        { nin_codi: null },
-        { tc_activ_ninos: { some: { nin_codi } } },
-      ];
+      andConditions.push({
+        OR: [
+          { nin_codi },
+          { nin_codi: null },
+          { tc_activ_ninos: { some: { nin_codi } } },
+        ],
+      });
+    }
+
+    if (andConditions.length === 1) {
+      where.OR = andConditions[0].OR;
+    } else if (andConditions.length > 1) {
+      where.AND = andConditions;
     }
 
     const page = Math.max(parseInt(pagina, 10) || 1, 1);
@@ -178,6 +195,7 @@ class SesionesService {
         act_med: data.act_med || null,
         act_difi: data.act_difi || 'Baja',
         act_estd: data.act_estd || 'Activa',
+        act_visib: data.act_visib || 'AMBOS',
         act_time: data.act_time != null ? parseInt(data.act_time, 10) : null,
         nin_codi: data.nin_codi || null,
       },
@@ -209,7 +227,10 @@ class SesionesService {
         act_med: data.act_med !== undefined ? data.act_med : undefined,
         act_difi: data.act_difi !== undefined ? data.act_difi : undefined,
         act_estd: data.act_estd !== undefined ? data.act_estd : undefined,
-        act_time: data.act_time !== undefined ? parseInt(data.act_time, 10) : undefined,
+        act_visib: data.act_visib !== undefined ? data.act_visib : undefined,
+        act_time: data.act_time !== undefined
+          ? (data.act_time === null ? null : parseInt(data.act_time, 10))
+          : undefined,
         nin_codi: data.nin_codi !== undefined ? data.nin_codi : undefined,
       },
       include: { tm_categ: true },
@@ -350,13 +371,14 @@ class SesionesService {
     return asignacion;
   }
 
-  async listarAsignacionesDeNino(nin_codi, { estado } = {}) {
+  async listarAsignacionesDeNino(nin_codi, { estado, rol_codi } = {}) {
     const nino = await prisma.tm_ninos.findUnique({ where: { nin_codi } });
     if (!nino) throw new AppError('Niño no encontrado', 404);
 
     const where = {
       nin_codi,
       ...(estado ? { acn_estd: estado } : {}),
+      ...(rol_codi === 'ROL_REP' ? { tm_activ: { act_visib: 'AMBOS' } } : {}),
     };
 
     return await prisma.tc_activ_ninos.findMany({
@@ -390,5 +412,6 @@ module.exports = new SesionesService();
 module.exports.ESTADOS = {
   ACTIVIDAD: ACTIVIDAD_ESTADOS,
   DIFICULTAD: ACTIVIDAD_DIFICULTAD,
+  VISIBILIDAD: ACTIVIDAD_VISIBILIDAD,
   ASIGNACION: ASIGNACION_ESTADOS,
 };

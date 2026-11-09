@@ -292,8 +292,18 @@ class NinosService {
       return { user, nino, repre, reutilizado };
     });
 
-    const frontendUrl = env.FRONTEND_URL || 'http://localhost:5173';
-    const loginUrl = `${frontendUrl}/login`;
+    const frontendUrl = (env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+    const loginUrl = `${frontendUrl}/auth/login`;
+    let invitationUrl = null;
+
+    if (!result.reutilizado) {
+      const inviteToken = jwt.sign(
+        { usu_codi: result.user.usu_codi, purpose: 'rep_invite' },
+        env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+      invitationUrl = `${frontendUrl}/auth/invite?token=${inviteToken}`;
+    }
 
     // Enviar correo de invitación únicamente si se creó cuenta nueva
     let emailSent = false;
@@ -309,7 +319,8 @@ class NinosService {
             nombre_nino: `${result.nino.nin_nomb} ${result.nino.nin_apel}`,
             email: result.user.usu_crro,
             password: generatedPassword,
-            loginUrl: loginUrl
+            loginUrl: loginUrl,
+            invitationUrl: invitationUrl
           }
         });
         emailSent = true;
@@ -325,6 +336,9 @@ class NinosService {
       nin_nomb: result.nino.nin_nomb,
       nin_apel: result.nino.nin_apel,
       reutilizado: result.reutilizado,
+      usu_crro: result.user.usu_crro,
+      invitationUrl: invitationUrl,
+      loginUrl: loginUrl,
       representante: result.reutilizado
         ? {
             rep_nomb: result.repre.rep_nomb,
@@ -456,7 +470,12 @@ class NinosService {
 
     const targetNin = data.nin_codi || repre.tm_repre_ninos[0]?.nin_codi;
     if (!targetNin) {
-      throw new Error('Representante sin niños vinculados');
+      throw new AppError('Representante sin niños vinculados', 400);
+    }
+
+    const vinculado = repre.tm_repre_ninos.some((rn) => rn.nin_codi === targetNin);
+    if (!vinculado) {
+      throw new AppError('No tiene permisos para registrar bitácora en este paciente', 403);
     }
 
     // Funciones helper seguras para validación
@@ -477,8 +496,10 @@ class NinosService {
 
     // Generar ID único
     const bit_codi = generateId('B');
+    const bitCrisi = parseNumber(data.crisisCount) || 0;
+    const isCrisisMood = /crisis|sobrecarga/i.test(data.mood || '');
 
-    return await prisma.tr_bitac.create({
+    const created = await prisma.tr_bitac.create({
       data: {
         bit_codi: bit_codi.substring(0, 10),
         nin_codi: targetNin,
@@ -494,8 +515,107 @@ class NinosService {
         bit_senso: data.sensoryIssues || null,
         bit_medi: parseBoolean(data.medicationTaken),
         bit_diges: data.digestion || null,
+        bit_logro: data.positiveNote || data.bit_logro || null,
+        bit_terap: data.therapyDone || data.bit_terap || null,
         bit_crea: new Date()
       }
+    });
+
+    if (bitCrisi > 0 || isCrisisMood) {
+      try {
+        if (prisma.tc_asign?.findMany) {
+          const { emitToUser } = require('../../services/socket.service');
+          const asignaciones = await prisma.tc_asign.findMany({
+            where: { nin_codi: targetNin, asi_stdo: 'Activo' },
+            include: {
+              tm_espec: { select: { usu_codi: true } },
+              tm_ninos: { select: { nin_nomb: true } }
+            }
+          });
+          asignaciones.forEach((a) => {
+            const espUsu = a.tm_espec?.usu_codi;
+            if (espUsu) {
+              const ninNomb = a.tm_ninos?.nin_nomb || 'Paciente';
+              emitToUser(espUsu, 'specialist_notification', {
+                id: `home_${created.bit_codi}`,
+                bit_codi: created.bit_codi,
+                type: 'home_crisis',
+                nin_codi: targetNin,
+                nin_nomb: ninNomb,
+                message: `🏡 Bitácora crítica en el hogar de ${ninNomb} (${data.mood || 'Crisis'}${bitCrisi > 0 ? ` · ${bitCrisi} crisis` : ''})`,
+                time: new Date().toISOString(),
+                read: false
+              });
+            }
+          });
+        }
+      } catch (_) {}
+    }
+
+    return created;
+  }
+
+  async actualizarBitacora(usu_codi, bit_codi, data) {
+    const repre = await prisma.tm_repre.findUnique({
+      where: { usu_codi },
+      include: { tm_repre_ninos: true }
+    });
+
+    if (!repre) {
+      throw new AppError('Representante no encontrado', 404);
+    }
+
+    const existente = await prisma.tr_bitac.findUnique({
+      where: { bit_codi }
+    });
+
+    if (!existente) {
+      throw new AppError('Bitácora no encontrada', 404);
+    }
+
+    const vinculado = repre.tm_repre_ninos.some((rn) => rn.nin_codi === existente.nin_codi);
+    if (!vinculado) {
+      throw new AppError('No tiene permisos para editar esta bitácora', 403);
+    }
+
+    const parseNumber = (val) => {
+      if (val === null || val === undefined || val === '') return null;
+      const parsed = Number(val);
+      return isNaN(parsed) ? null : parsed;
+    };
+
+    const parseBoolean = (val) => {
+      if (val === 'true' || val === true) return true;
+      if (val === 'false' || val === false) return false;
+      return null;
+    };
+
+    const updateData = {};
+    if (data.date !== undefined) {
+      const dateVal = new Date(data.date);
+      if (!isNaN(dateVal.getTime())) updateData.bit_fech = dateVal;
+    }
+    if (data.sleepHours !== undefined) updateData.bit_suen = parseNumber(data.sleepHours) ?? 0;
+    if (data.sleepQuality !== undefined) updateData.bit_cali = data.sleepQuality || 'Normal';
+    if (data.mood !== undefined) updateData.bit_anim = data.mood || 'Normal';
+    if (data.appetite !== undefined) updateData.bit_apet = data.appetite || 'Normal';
+    if (data.bpm !== undefined) updateData.bit_bpm = parseNumber(data.bpm);
+    if (data.text !== undefined) updateData.bit_obse = data.text || null;
+    if (data.crisisCount !== undefined) updateData.bit_crisi = parseNumber(data.crisisCount);
+    if (data.triggers !== undefined) updateData.bit_dese = data.triggers || null;
+    if (data.sensoryIssues !== undefined) updateData.bit_senso = data.sensoryIssues || null;
+    if (data.medicationTaken !== undefined) updateData.bit_medi = parseBoolean(data.medicationTaken);
+    if (data.digestion !== undefined) updateData.bit_diges = data.digestion || null;
+    if (data.positiveNote !== undefined || data.bit_logro !== undefined) {
+      updateData.bit_logro = (data.positiveNote ?? data.bit_logro) || null;
+    }
+    if (data.therapyDone !== undefined || data.bit_terap !== undefined) {
+      updateData.bit_terap = (data.therapyDone ?? data.bit_terap) || null;
+    }
+
+    return await prisma.tr_bitac.update({
+      where: { bit_codi },
+      data: updateData
     });
   }
 

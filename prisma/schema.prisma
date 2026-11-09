@@ -79,6 +79,7 @@ model tm_espec {
   esc_codi     String      @db.VarChar(10)
   esp_gner     gender_enum @default(F)
   esp_tdoc     String      @default("V") @db.VarChar(2)
+  esp_cedu     String?     @unique @db.VarChar(20)
   esp_fnac     DateTime?   @db.Date
   esp_foto     String?     @db.Text
   esp_licencia String?     @db.VarChar(50)
@@ -248,6 +249,7 @@ model tm_activ {
   act_med  String?  @db.Text
   act_difi String   @default("Baja") @db.VarChar(10)
   act_estd String   @default("Activa") @db.VarChar(20)
+  act_visib String  @default("AMBOS") @db.VarChar(20)
   act_time Int?
   act_crea DateTime @default(now()) @db.Timestamp()
 
@@ -516,6 +518,8 @@ model tr_bitac {
   bit_senso String?  @db.VarChar(50)
   bit_medi  Boolean?
   bit_diges String?  @db.VarChar(50)
+  bit_logro String?  @db.Text
+  bit_terap String?  @db.VarChar(120)
 
   tm_ninos tm_ninos @relation(fields: [nin_codi], references: [nin_codi])
 

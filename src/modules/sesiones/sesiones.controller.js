@@ -27,7 +27,10 @@ const listarSesionesNino = catchAsync(async (req, res) => {
 // ========================== ACTIVIDADES ==========================
 
 const listarActividades = catchAsync(async (req, res) => {
-  const result = await sesionesService.listarActividades(req.validatedQuery);
+  const result = await sesionesService.listarActividades({
+    ...req.validatedQuery,
+    rol_codi: req.user?.rol_codi,
+  });
   res.status(200).json({ data: result });
 });
 
@@ -89,7 +92,10 @@ const asignarActividad = catchAsync(async (req, res) => {
 const listarAsignacionesNino = catchAsync(async (req, res) => {
   const { nin_codi } = req.validatedParams;
   const { estado } = req.validatedQuery;
-  const result = await sesionesService.listarAsignacionesDeNino(nin_codi, { estado });
+  const result = await sesionesService.listarAsignacionesDeNino(nin_codi, {
+    estado,
+    rol_codi: req.user?.rol_codi,
+  });
   res.status(200).json({ data: result });
 });
 

@@ -185,6 +185,8 @@ class MonitoreoService {
       if (io) {
         io.to(`child:${sesion.tm_ninos.nin_codi}`).emit('new_alert', {
           id_alert: alerta.ale_codi,
+          nin_codi: sesion.tm_ninos.nin_codi,
+          nin_nomb: sesion.tm_ninos.nin_nomb,
           fec_hora: alerta.ale_time,
           metodo: alerta.ale_meto,
           est_dete: alerta.ale_meto,

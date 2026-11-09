@@ -154,6 +154,16 @@ class AuthService {
       throw new Error('El usuario o correo ya están registrados');
     }
 
+    const normalizedCedu = data.esp_cedu ? String(data.esp_cedu).trim() : null;
+    if (normalizedCedu && typeof prisma.tm_espec?.findFirst === 'function') {
+      const existingEsp = await prisma.tm_espec.findFirst({
+        where: { esp_cedu: normalizedCedu }
+      });
+      if (existingEsp) {
+        throw Object.assign(new Error('Ya existe un especialista registrado con ese número de cédula o documento'), { status: 400 });
+      }
+    }
+
     const hashedClve = await bcrypt.hash(data.usu_clve, 10);
     const ROL_ESPECIALISTA = 'ROL_ESP';
 
@@ -203,6 +213,7 @@ class AuthService {
           esp_apel: data.esp_apel,
           esp_gner: data.esp_gner || 'F',
           esp_tdoc: data.esp_tdoc || 'V',
+          esp_cedu: normalizedCedu,
           esp_fnac: data.esp_fnac ? new Date(data.esp_fnac) : null,
           esp_foto: data.esp_foto || null,
           esp_licencia: data.esp_licencia || null,
@@ -295,7 +306,11 @@ class AuthService {
         }
       });
 
-      if (!usuario || usuario.usu_estd) {
+      const isInvalid = !usuario || (decoded.purpose === 'rep_invite'
+        ? (!usuario.usu_estd || Boolean(usuario.usu_logi))
+        : Boolean(usuario.usu_estd));
+
+      if (isInvalid) {
         throw new Error('La invitación no es válida o ya ha sido completada.');
       }
 
@@ -306,6 +321,8 @@ class AuthService {
         usu_crro: usuario.usu_crro,
         rep_nomb: repre?.rep_nomb,
         rep_apel: repre?.rep_apel,
+        rep_rela: repre?.rep_rela,
+        rep_telf: repre?.rep_telf,
         nin_nomb: child?.nin_nomb,
         nin_apel: child?.nin_apel
       };
@@ -314,8 +331,13 @@ class AuthService {
     }
   }
 
-  async completeInvitation({ token, password, relation, phone }) {
+  async completeInvitation(payload = {}) {
     try {
+      const { token, password, usu_clve, relation, rep_rela, phone, rep_telf } = payload;
+      const rawPassword = password ?? usu_clve;
+      const nextRelation = relation ?? rep_rela;
+      const nextPhone = phone ?? rep_telf;
+
       const decoded = jwt.verify(token, env.JWT_SECRET);
       
       const usuario = await prisma.tm_usuar.findUnique({
@@ -323,11 +345,15 @@ class AuthService {
         include: { tm_repre: true }
       });
 
-      if (!usuario || usuario.usu_estd) {
+      const isInvalid = !usuario || (decoded.purpose === 'rep_invite'
+        ? (!usuario.usu_estd || Boolean(usuario.usu_logi))
+        : Boolean(usuario.usu_estd));
+
+      if (isInvalid || !rawPassword) {
         throw new Error('Esta invitación ya fue completada o es inválida.');
       }
 
-      const hashedClve = await bcrypt.hash(password, 10);
+      const hashedClve = await bcrypt.hash(rawPassword, 10);
 
       const result = await prisma.$transaction(async (tx) => {
         const updatedUser = await tx.tm_usuar.update({
@@ -342,8 +368,8 @@ class AuthService {
         const updatedRepre = await tx.tm_repre.update({
           where: { rep_cod: usuario.tm_repre.rep_cod },
           data: {
-            rep_rela: relation || 'Familiar',
-            rep_telf: phone || 'No especificado'
+            rep_rela: nextRelation || usuario.tm_repre.rep_rela || 'Familiar',
+            rep_telf: nextPhone || usuario.tm_repre.rep_telf || 'No especificado'
           }
         });
 
@@ -381,7 +407,7 @@ class AuthService {
       where: { usu_codi },
       include: {
         tm_roles: true,
-        tm_espec: { include: { tm_especi: true } },
+        tm_espec: { include: { tm_especi: true, tm_insti: true } },
         tm_repre: true,
         tm_admin: { include: { tm_insti: true } }
       }
@@ -438,7 +464,7 @@ class AuthService {
             esp_apel: profileData.apel || usuario.tm_espec.esp_apel,
             esp_telf: profileData.telf !== undefined ? profileData.telf : usuario.tm_espec.esp_telf,
             esp_licencia: profileData.licencia !== undefined ? profileData.licencia : usuario.tm_espec.esp_licencia,
-            esp_tdoc: profileData.tdoc !== undefined ? profileData.tdoc : usuario.tm_espec.esp_tdoc,
+            // Documento legal (esp_codi / esp_cedu / esp_tdoc) inmutable desde perfil propio, igual que ROL_REP
             esp_fnac: profileData.fnac !== undefined
               ? (profileData.fnac ? new Date(profileData.fnac) : null)
               : usuario.tm_espec.esp_fnac,

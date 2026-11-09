@@ -18,6 +18,8 @@ router.use(authenticate);
 router.use(requireAdmin);
 
 router.get('/health', adminController.getHealth);
+router.get('/notificaciones', adminController.getNotificaciones);
+router.get('/notifications', adminController.getNotificaciones);
 router.get('/metricas', adminController.getMetricas);
 router.get('/catalogos', adminController.getCatalogos);
 router.get('/ninos', adminController.listNinos);

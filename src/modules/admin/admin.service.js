@@ -151,6 +151,8 @@ class AdminService {
       where.OR = [
         { esp_nomb: { contains: q, mode: 'insensitive' } },
         { esp_apel: { contains: q, mode: 'insensitive' } },
+        { esp_cedu: { contains: q, mode: 'insensitive' } },
+        { esp_codi: { contains: q, mode: 'insensitive' } },
         { esp_licencia: { contains: q, mode: 'insensitive' } },
         { esp_telf: { contains: q, mode: 'insensitive' } },
         { tm_usuar: { usu_crro: { contains: q, mode: 'insensitive' } } }
@@ -240,16 +242,18 @@ class AdminService {
 
   async createEspecialista(data) {
     const password = data.password || generateRandomPassword();
-    
+    const internalId = (data.esp_codi && /^E/i.test(data.esp_codi)) ? data.esp_codi : generateId('E');
+
     const payload = {
       usu_crro: data.email,
       usu_clve: password,
+      esp_codi: internalId,
+      usu_codi: generateId('U'),
       esp_nomb: data.nombre,
       esp_apel: data.apellido,
-      esp_codi: data.esp_codi || generateId('E'),
-      usu_codi: generateId('U'),
       esp_licencia: data.esp_licencia,
       esp_tdoc: data.esp_tdoc || 'V',
+      esp_cedu: data.esp_cedu ? String(data.esp_cedu).trim() : null,
       esp_fnac: data.esp_fnac ? new Date(data.esp_fnac) : undefined,
       esp_foto: data.esp_foto,
       esp_gner: data.esp_gner || 'F',
@@ -276,6 +280,17 @@ class AdminService {
     } catch (err) {
       console.error('No se pudo enviar el correo de bienvenida', err);
     }
+
+    try {
+      const { emitToAdminInstitution } = require('../../services/socket.service');
+      emitToAdminInstitution(payload.ins_codi, 'admin_notification', {
+        id: `spec_${payload.esp_codi}`,
+        type: 'assignment',
+        category: 'Personal Clínico',
+        message: `🩺 Nuevo especialista registrado: ${data.nombre} ${data.apellido}`,
+        time: new Date().toISOString()
+      });
+    } catch (_) {}
 
     return { ...result, password_generada: password };
   }
@@ -305,6 +320,20 @@ class AdminService {
       }
     });
 
+    try {
+      const { emitToUser, resyncUserSockets } = require('../../services/socket.service');
+      emitToUser(especialista.usu_codi, 'specialist_notification', {
+        id: `assign_${nuevaAsignacion.asi_codi}`,
+        asi_codi: nuevaAsignacion.asi_codi,
+        type: 'assignment',
+        nin_codi: nino.nin_codi,
+        nin_nomb: nino.nin_nomb,
+        message: `📋 Nuevo paciente asignado: ${nino.nin_nomb} ${nino.nin_apel || ''}`.trim(),
+        time: new Date().toISOString()
+      });
+      await resyncUserSockets(especialista.usu_codi);
+    } catch (_) {}
+
     return nuevaAsignacion;
   }
 
@@ -312,13 +341,28 @@ class AdminService {
     const esp = await prisma.tm_espec.findUnique({ where: { esp_codi } });
     if (!esp) throw new AppError('Especialista no encontrado', 404);
 
+    const normalizedCedu = data.esp_cedu !== undefined
+      ? (data.esp_cedu ? String(data.esp_cedu).trim() : null)
+      : undefined;
+
     const result = await prisma.$transaction(async (tx) => {
+      if (normalizedCedu) {
+        const ceduExists = await tx.tm_espec.findFirst({
+          where: {
+            esp_cedu: normalizedCedu,
+            esp_codi: { not: esp_codi }
+          }
+        });
+        if (ceduExists) throw new AppError('La cédula / documento ingresado ya está en uso', 400);
+      }
+
       const updatedEsp = await tx.tm_espec.update({
         where: { esp_codi },
         data: {
           esp_nomb: data.esp_nomb !== undefined ? data.esp_nomb : undefined,
           esp_apel: data.esp_apel !== undefined ? data.esp_apel : undefined,
           esp_tdoc: data.esp_tdoc !== undefined ? data.esp_tdoc : undefined,
+          esp_cedu: normalizedCedu !== undefined ? normalizedCedu : undefined,
           esp_fnac: data.esp_fnac !== undefined
             ? (data.esp_fnac ? new Date(data.esp_fnac) : null)
             : undefined,
@@ -372,6 +416,17 @@ class AdminService {
       where: { asi_codi },
       data: { asi_stdo: stdo }
     });
+
+    try {
+      const espec = await prisma.tm_espec.findUnique({
+        where: { esp_codi: asignacion.esp_codi },
+        select: { usu_codi: true }
+      });
+      if (espec?.usu_codi) {
+        const { resyncUserSockets } = require('../../services/socket.service');
+        await resyncUserSockets(espec.usu_codi);
+      }
+    } catch (_) {}
 
     return updatedAsignacion;
   }
@@ -1169,6 +1224,145 @@ class AdminService {
     }
 
     return { sentTo: targets };
+  }
+
+  async getNotificacionesAdmin(usu_codi) {
+    const admin = usu_codi
+      ? await prisma.tm_admin.findUnique({
+          where: { usu_codi },
+          select: { ins_codi: true }
+        })
+      : null;
+
+    const insCodi = admin?.ins_codi || null;
+    const hace7Dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const [
+      especialistasRecientes,
+      representantesRecientes,
+      unassignedPatientsCount,
+      inactiveSpecsWithActiveCasesCount,
+      auditoriaReciente
+    ] = await Promise.all([
+      prisma.tm_espec.findMany({
+        where: {
+          ...(insCodi ? { ins_codi: insCodi } : {}),
+          tm_usuar: { usu_crea: { gte: hace7Dias } }
+        },
+        select: {
+          esp_codi: true,
+          esp_nomb: true,
+          esp_apel: true,
+          tm_usuar: { select: { usu_codi: true, usu_crea: true } }
+        },
+        take: 15
+      }),
+      prisma.tm_repre.findMany({
+        where: {
+          ...(insCodi
+            ? {
+                OR: [
+                  { tm_repre_ninos: { some: { tm_ninos: { ins_codi: insCodi } } } },
+                  { tm_repre_ninos: { none: {} } }
+                ]
+              }
+            : {}),
+          tm_usuar: { usu_crea: { gte: hace7Dias } }
+        },
+        select: {
+          rep_cod: true,
+          rep_nomb: true,
+          rep_apel: true,
+          tm_usuar: { select: { usu_codi: true, usu_crea: true } }
+        },
+        take: 15
+      }),
+      prisma.tm_ninos.count({
+        where: {
+          ...(insCodi ? { ins_codi: insCodi } : {}),
+          tc_asign: { none: { asi_stdo: 'Activo' } }
+        }
+      }),
+      prisma.tm_espec.count({
+        where: {
+          ...(insCodi ? { ins_codi: insCodi } : {}),
+          tm_usuar: { usu_estd: false },
+          tc_asign: { some: { asi_stdo: 'Activo' } }
+        }
+      }),
+      prisma.tr_audito.findMany({
+        where: {
+          aud_time: { gte: hace7Dias },
+          aud_tipo: { in: ['WARN', 'ERROR'] }
+        },
+        select: {
+          aud_codi: true,
+          aud_tipo: true,
+          aud_desc: true,
+          aud_time: true
+        },
+        orderBy: { aud_time: 'desc' },
+        take: 10
+      })
+    ]);
+
+    const items = [];
+    const nowIso = new Date().toISOString();
+
+    if (unassignedPatientsCount > 0) {
+      items.push({
+        id: `ops_unassigned_${unassignedPatientsCount}`,
+        type: 'operational_warning',
+        category: 'Asignaciones',
+        count: unassignedPatientsCount,
+        message: `⚠️ Hay ${unassignedPatientsCount} paciente(s) sin especialista activo asignado`,
+        time: nowIso
+      });
+    }
+
+    if (inactiveSpecsWithActiveCasesCount > 0) {
+      items.push({
+        id: `ops_inactive_specs_${inactiveSpecsWithActiveCasesCount}`,
+        type: 'operational_warning',
+        category: 'Personal Clínico',
+        count: inactiveSpecsWithActiveCasesCount,
+        message: `⚠️ ${inactiveSpecsWithActiveCasesCount} especialista(s) inactivo(s) conservan asignaciones activas`,
+        time: nowIso
+      });
+    }
+
+    (especialistasRecientes || []).forEach((s) => {
+      items.push({
+        id: `spec_${s.esp_codi}`,
+        type: 'assignment',
+        category: 'Personal Clínico',
+        message: `🩺 Nuevo especialista registrado: ${s.esp_nomb} ${s.esp_apel}`,
+        time: s.tm_usuar?.usu_crea || nowIso
+      });
+    });
+
+    (representantesRecientes || []).forEach((r) => {
+      items.push({
+        id: `repre_${r.rep_cod}`,
+        type: 'info',
+        category: 'Representantes',
+        message: `👨‍👩‍👧 Nuevo representante registrado: ${r.rep_nomb} ${r.rep_apel}`,
+        time: r.tm_usuar?.usu_crea || nowIso
+      });
+    });
+
+    (auditoriaReciente || []).forEach((a) => {
+      items.push({
+        id: `aud_${a.aud_codi}`,
+        type: a.aud_tipo === 'ERROR' ? 'operational_warning' : 'warning',
+        category: 'Auditoría',
+        message: `🛡️ [${a.aud_tipo}] ${a.aud_desc}`,
+        time: a.aud_time
+      });
+    });
+
+    items.sort((a, b) => new Date(b.time) - new Date(a.time));
+    return items.slice(0, 25);
   }
 }
 

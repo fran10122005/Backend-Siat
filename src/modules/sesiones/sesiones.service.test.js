@@ -88,6 +88,33 @@ describe('SesionesService', () => {
       expect(args.where.cat_codi).toBe('CAT1');
       expect(args.where.act_estd).toBe('Activa');
     });
+
+    it('oculta actividades exclusivas del especialista cuando el rol es ROL_REP', async () => {
+      mockPrisma.tm_activ.count.mockResolvedValue(1);
+      mockPrisma.tm_activ.findMany.mockResolvedValue([{ act_codi: 'ACT1', act_visib: 'AMBOS' }]);
+
+      await sesionesService.listarActividades({ rol_codi: 'ROL_REP', visibilidad: 'ESPECIALISTA', pagina: 1, limite: 10 });
+
+      const args = mockPrisma.tm_activ.findMany.mock.calls[0][0];
+      expect(args.where.act_visib).toBe('AMBOS');
+    });
+
+    it('permite filtrar por visibilidad para ROL_ESP y combina búsqueda con nin_codi usando AND', async () => {
+      mockPrisma.tm_activ.count.mockResolvedValue(0);
+      mockPrisma.tm_activ.findMany.mockResolvedValue([]);
+
+      await sesionesService.listarActividades({
+        rol_codi: 'ROL_ESP',
+        visibilidad: 'ESPECIALISTA',
+        busqueda: 'Calma',
+        nin_codi: 'N1',
+      });
+
+      const args = mockPrisma.tm_activ.findMany.mock.calls[0][0];
+      expect(args.where.act_visib).toBe('ESPECIALISTA');
+      expect(Array.isArray(args.where.AND)).toBe(true);
+      expect(args.where.AND).toHaveLength(2);
+    });
   });
 
   describe('crearActividad', () => {
@@ -97,7 +124,7 @@ describe('SesionesService', () => {
         .rejects.toThrow('Categoría no encontrada o inactiva');
     });
 
-    it('crea la actividad con la categoría existente', async () => {
+    it('crea la actividad con la categoría existente y visibilidad por defecto AMBOS', async () => {
       mockPrisma.tm_categ.findUnique.mockResolvedValue({ cat_codi: 'CAT1', cat_estd: true });
       mockPrisma.tm_activ.create.mockImplementation(async (args) => args.data);
 
@@ -107,6 +134,20 @@ describe('SesionesService', () => {
       expect(result.act_trea).toBe('Bingo de Emociones');
       expect(result.act_estd).toBe('Activa');
       expect(result.act_difi).toBe('Baja');
+      expect(result.act_visib).toBe('AMBOS');
+    });
+
+    it('guarda act_visib ESPECIALISTA cuando se especifica', async () => {
+      mockPrisma.tm_categ.findUnique.mockResolvedValue({ cat_codi: 'CAT1', cat_estd: true });
+      mockPrisma.tm_activ.create.mockImplementation(async (args) => args.data);
+
+      const result = await sesionesService.crearActividad({
+        cat_codi: 'CAT1',
+        act_trea: 'Evaluación Sensorial Clínica',
+        act_visib: 'ESPECIALISTA',
+      });
+
+      expect(result.act_visib).toBe('ESPECIALISTA');
     });
   });
 

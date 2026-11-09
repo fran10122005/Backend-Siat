@@ -11,6 +11,18 @@ const mockPrisma = {
   },
   tr_sesio: {
     findMany: jest.fn()
+  },
+  tr_alert: {
+    findMany: jest.fn()
+  },
+  tr_bitac: {
+    findMany: jest.fn()
+  },
+  tc_asign: {
+    findMany: jest.fn()
+  },
+  tm_repre_ninos: {
+    findMany: jest.fn()
   }
 };
 
@@ -149,6 +161,79 @@ describe('EspecialistaController', () => {
       expect(data).toHaveLength(1);
       expect(data[0].bpm_max).toBe(135);
       expect(data[0].telemetry.length).toBe(2);
+    });
+  });
+
+  describe('listarNotificaciones', () => {
+    it('deniega acceso si el usuario no es ROL_ESP', async () => {
+      const req = buildReq({ user: { usu_codi: 'U_ADM', rol_codi: 'ROL_ADM' } });
+      const res = buildRes();
+
+      await controller.listarNotificaciones(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    it('devuelve [] si el especialista no tiene pacientes activos asignados', async () => {
+      mockPrisma.tm_espec.findUnique.mockResolvedValue({ esp_codi: 'E1', tc_asign: [] });
+      const req = buildReq({ user: { usu_codi: 'U1', rol_codi: 'ROL_ESP' } });
+      const res = buildRes();
+
+      await controller.listarNotificaciones(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ status: 'ok', data: [] });
+    });
+
+    it('devuelve alertas, bitácoras críticas y asignaciones solo de sus pacientes asignados', async () => {
+      mockPrisma.tm_espec.findUnique.mockResolvedValue({
+        esp_codi: 'E1',
+        tc_asign: [{ nin_codi: 'N1' }, { nin_codi: 'N2' }]
+      });
+      mockPrisma.tr_alert.findMany.mockResolvedValue([
+        {
+          ale_codi: 'AL1',
+          ale_time: new Date('2026-11-09T12:00:00Z'),
+          ale_meto: 'SOBRECARGA_SENSORIAL',
+          tr_sesio: { nin_codi: 'N1', tm_ninos: { nin_codi: 'N1', nin_nomb: 'Mateo' } }
+        }
+      ]);
+      mockPrisma.tr_bitac.findMany.mockResolvedValue([
+        {
+          bit_codi: 'B1',
+          nin_codi: 'N2',
+          bit_anim: 'Crisis / Sobrecarga',
+          bit_crisi: 2,
+          bit_crea: new Date('2026-11-09T11:00:00Z'),
+          tm_ninos: { nin_codi: 'N2', nin_nomb: 'Sofía' }
+        }
+      ]);
+      mockPrisma.tc_asign.findMany.mockResolvedValue([
+        {
+          asi_codi: 'AS1',
+          nin_codi: 'N2',
+          asi_inic: new Date('2026-11-08T10:00:00Z'),
+          tm_ninos: { nin_codi: 'N2', nin_nomb: 'Sofía', nin_apel: 'Ríos' }
+        }
+      ]);
+
+      const req = buildReq({ user: { usu_codi: 'U1', rol_codi: 'ROL_ESP' } });
+      const res = buildRes();
+
+      await controller.listarNotificaciones(req, res);
+
+      expect(mockPrisma.tr_alert.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            tr_sesio: { nin_codi: { in: ['N1', 'N2'] } }
+          })
+        })
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      const { data } = res.json.mock.calls[0][0];
+      expect(data.map((n) => n.type)).toEqual(
+        expect.arrayContaining(['crisis', 'home_crisis', 'assignment'])
+      );
     });
   });
 });

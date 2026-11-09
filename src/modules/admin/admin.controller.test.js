@@ -115,4 +115,25 @@ describe('AdminController', () => {
       expect(res.json).toHaveBeenCalledWith({ success: true, data: mockResult });
     });
   });
+
+  describe('getNotificaciones', () => {
+    test('devuelve notificaciones operativas e institucionales sin datos clínicos de crisis', async () => {
+      const mockFeed = [
+        {
+          id: 'ops_unassigned_2',
+          type: 'operational_warning',
+          category: 'Asignaciones',
+          message: '⚠️ Hay 2 paciente(s) sin especialista activo asignado'
+        }
+      ];
+      req.user = { usu_codi: 'U_ADM' };
+      adminService.getNotificacionesAdmin.mockResolvedValue(mockFeed);
+
+      await adminController.getNotificaciones(req, res);
+
+      expect(adminService.getNotificacionesAdmin).toHaveBeenCalledWith('U_ADM');
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ status: 'ok', data: mockFeed });
+    });
+  });
 });

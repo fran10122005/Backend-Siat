@@ -17,7 +17,7 @@ const mockPrisma = {
   tm_ninos: { create: jest.fn() },
   tm_repre: { create: jest.fn(), update: jest.fn() },
   tm_repre_ninos: { create: jest.fn() },
-  tm_espec: { update: jest.fn(), create: jest.fn() },
+  tm_espec: { update: jest.fn(), create: jest.fn(), findFirst: jest.fn() },
   tm_especi: { findFirst: jest.fn(), create: jest.fn() },
   tm_admin: { update: jest.fn() },
   $transaction: jest.fn(async (cb) => cb(mockPrisma))
@@ -132,6 +132,84 @@ describe('AuthService', () => {
         tm_espec: null, tm_repre: { rep_cod: 'R1' }, tm_admin: null
       });
       await expect(authService.updateMe('U123', { password: 'NuevaClave1' })).rejects.toThrow('La contraseña actual es requerida');
+    });
+
+    it('mantiene inmutable esp_tdoc, esp_cedu y esp_codi al actualizar perfil propio de especialista', async () => {
+      const espUser = {
+        usu_codi: 'U_ESP',
+        usu_clve: 'hash',
+        rol_codi: 'ROL_ESP',
+        tm_espec: { esp_codi: 'E001', esp_cedu: '12345678', esp_tdoc: 'V', esp_nomb: 'Luis', esp_apel: 'Pérez', usu_codi: 'U_ESP' },
+        tm_repre: null,
+        tm_admin: null
+      };
+      mockPrisma.tm_usuar.findUnique.mockResolvedValue(espUser);
+
+      await authService.updateMe('U_ESP', { nomb: 'Luis Carlos', tdoc: 'P', cedu: 'P999999' });
+
+      const espUpdateCall = mockPrisma.tm_espec.update.mock.calls[0][0];
+      expect(espUpdateCall.data.esp_nomb).toBe('Luis Carlos');
+      expect(espUpdateCall.data.esp_tdoc).toBeUndefined();
+      expect(espUpdateCall.data.esp_codi).toBeUndefined();
+      expect(espUpdateCall.data.esp_cedu).toBeUndefined();
+    });
+  });
+
+  describe('invitación de representante (rep_invite)', () => {
+    it('permite obtener detalles y completar invitación nueva usando usu_clve y rep_rela', async () => {
+      const token = jwt.sign({ usu_codi: 'U_REP1', purpose: 'rep_invite' }, env.JWT_SECRET, { expiresIn: '7d' });
+      mockPrisma.tm_usuar.findUnique.mockResolvedValue({
+        usu_codi: 'U_REP1',
+        usu_crro: 'mama@ejemplo.com',
+        usu_estd: true,
+        usu_logi: null,
+        tm_repre: {
+          rep_cod: 'R_1',
+          rep_nomb: 'Marta',
+          rep_apel: 'Díaz',
+          rep_rela: 'Madre',
+          rep_telf: '04121234567',
+          tm_repre_ninos: [{ tm_ninos: { nin_nomb: 'Leo', nin_apel: 'Díaz' } }]
+        }
+      });
+      mockPrisma.tm_usuar.update.mockResolvedValue({
+        usu_codi: 'U_REP1',
+        usu_crro: 'mama@ejemplo.com',
+        rol_codi: 'ROL_REP'
+      });
+      mockPrisma.tm_repre.update.mockResolvedValue({
+        rep_nomb: 'Marta',
+        rep_apel: 'Díaz'
+      });
+
+      const details = await authService.getInvitationDetails(token);
+      expect(details.usu_crro).toBe('mama@ejemplo.com');
+      expect(details.nin_nomb).toBe('Leo');
+
+      const completed = await authService.completeInvitation({
+        token,
+        usu_clve: 'MiClaveSegura1',
+        rep_rela: 'Madre',
+        rep_telf: '04121234567'
+      });
+      expect(completed.token).toBeTruthy();
+      expect(completed.user.nombre).toBe('Marta Díaz');
+      expect(mockPrisma.tm_usuar.update).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({ usu_estd: true, usu_logi: expect.any(Date) })
+      }));
+    });
+
+    it('rechaza invitación rep_invite si el usuario ya inició sesión previamente (usu_logi definido)', async () => {
+      const token = jwt.sign({ usu_codi: 'U_REP2', purpose: 'rep_invite' }, env.JWT_SECRET, { expiresIn: '7d' });
+      mockPrisma.tm_usuar.findUnique.mockResolvedValue({
+        usu_codi: 'U_REP2',
+        usu_estd: true,
+        usu_logi: new Date(),
+        tm_repre: { rep_cod: 'R_2' }
+      });
+
+      await expect(authService.getInvitationDetails(token)).rejects.toThrow('ya ha sido completada');
+      await expect(authService.completeInvitation({ token, usu_clve: 'Clave123' })).rejects.toThrow('inválida');
     });
   });
 

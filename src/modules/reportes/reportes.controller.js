@@ -57,10 +57,145 @@ const obtenerAlertasRepresentante = catchAsync(async (req, res) => {
     ale_codi: alerta.ale_codi,
     ale_time: alerta.ale_time,
     ale_meto: alerta.ale_meto,
+    nin_codi: alerta.tr_sesio.nin_codi || alerta.tr_sesio.tm_ninos?.nin_codi || null,
     nin_nomb: alerta.tr_sesio.tm_ninos.nin_nomb
   }));
 
   res.status(200).json({ status: 'ok', data });
+});
+
+const obtenerNotificacionesRepresentante = catchAsync(async (req, res) => {
+  if (req.user?.rol_codi && req.user.rol_codi !== 'ROL_REP') {
+    return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Representante.' });
+  }
+
+  const repre = await prisma.tm_repre.findUnique({
+    where: { usu_codi: req.user.usu_codi },
+    include: {
+      tm_repre_ninos: {
+        include: {
+          tm_ninos: { select: { nin_codi: true, nin_nomb: true, nin_apel: true } }
+        }
+      }
+    }
+  });
+
+  if (!repre) {
+    return res.status(404).json({ error: 'Representante no encontrado' });
+  }
+
+  const ninoIds = (repre.tm_repre_ninos || []).map((rn) => rn.nin_codi);
+  if (ninoIds.length === 0) {
+    return res.status(200).json({ status: 'ok', data: [] });
+  }
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+  const todayKey = startOfToday.toISOString().slice(0, 10);
+
+  const [alertas, indicaciones, pref, asignacionesRutina, sesionesHoy] = await Promise.all([
+    prisma.tr_alert.findMany({
+      where: { tr_sesio: { nin_codi: { in: ninoIds } } },
+      include: {
+        tr_sesio: {
+          select: {
+            nin_codi: true,
+            tm_ninos: { select: { nin_codi: true, nin_nomb: true } }
+          }
+        }
+      },
+      orderBy: { ale_time: 'desc' },
+      take: 15
+    }),
+    prisma.tr_indic.findMany({
+      where: { nin_codi: { in: ninoIds }, ind_leid: false },
+      include: {
+        tm_ninos: { select: { nin_codi: true, nin_nomb: true } },
+        tm_espec: { select: { esp_nomb: true, esp_apel: true } }
+      },
+      orderBy: { ind_crea: 'desc' },
+      take: 15
+    }),
+    prisma.tm_pref_notif.findUnique({
+      where: { pnf_usuario: req.user.usu_codi }
+    }),
+    prisma.tc_activ_ninos.findMany({
+      where: {
+        nin_codi: { in: ninoIds },
+        acn_estd: 'Activa',
+        tm_activ: { act_estd: 'Activa', act_visib: 'AMBOS' }
+      },
+      include: {
+        tm_activ: { select: { act_codi: true, act_trea: true } },
+        tm_ninos: { select: { nin_codi: true, nin_nomb: true } }
+      },
+      take: 30
+    }),
+    prisma.tr_sesio.findMany({
+      where: {
+        nin_codi: { in: ninoIds },
+        ses_inic: { gte: startOfToday, lte: endOfToday }
+      },
+      select: { nin_codi: true, act_codi: true }
+    })
+  ]);
+
+  const items = [];
+
+  (alertas || []).forEach((alerta) => {
+    const ninNomb = alerta.tr_sesio?.tm_ninos?.nin_nomb || 'Tu niño';
+    const ninCodi = alerta.tr_sesio?.nin_codi || alerta.tr_sesio?.tm_ninos?.nin_codi || null;
+    items.push({
+      id: alerta.ale_codi,
+      ale_codi: alerta.ale_codi,
+      type: 'crisis',
+      nin_codi: ninCodi,
+      nin_nomb: ninNomb,
+      message: `🚨 Alerta de sobrecarga (${alerta.ale_meto || 'SOBRECARGA'}) en ${ninNomb}`,
+      time: alerta.ale_time
+    });
+  });
+
+  (indicaciones || []).forEach((ind) => {
+    const ninNomb = ind.tm_ninos?.nin_nomb || 'Tu niño';
+    const docNomb = ind.tm_espec
+      ? `${ind.tm_espec.esp_nomb} ${ind.tm_espec.esp_apel}`.trim()
+      : 'Especialista';
+    items.push({
+      id: `ind_${ind.ind_codi}`,
+      ind_codi: ind.ind_codi,
+      type: 'indication',
+      nin_codi: ind.nin_codi,
+      nin_nomb: ninNomb,
+      message: `📋 Indicación sin leer (${docNomb}) para ${ninNomb}: ${ind.ind_desc}`,
+      time: ind.ind_crea
+    });
+  });
+
+  const recordatoriosActivos = pref ? pref.recordatorios_sesiones !== false : true;
+  if (recordatoriosActivos && Array.isArray(asignacionesRutina) && asignacionesRutina.length > 0) {
+    const completedSet = new Set((sesionesHoy || []).map((s) => `${s.nin_codi}:${s.act_codi}`));
+    asignacionesRutina.forEach((asig) => {
+      if (!completedSet.has(`${asig.nin_codi}:${asig.act_codi}`)) {
+        const ninNomb = asig.tm_ninos?.nin_nomb || 'Tu niño';
+        const actTrea = asig.tm_activ?.act_trea || 'Rutina terapéutica';
+        items.push({
+          id: `routine_${asig.acn_codi}_${todayKey}`,
+          acn_codi: asig.acn_codi,
+          type: 'routine_reminder',
+          nin_codi: asig.nin_codi,
+          nin_nomb: ninNomb,
+          message: `⏰ Rutina pendiente hoy para ${ninNomb}: ${actTrea}`,
+          time: startOfToday
+        });
+      }
+    });
+  }
+
+  items.sort((a, b) => new Date(b.time) - new Date(a.time));
+  res.status(200).json({ status: 'ok', data: items.slice(0, 25) });
 });
 
 const obtenerEvolucionRepresentante = catchAsync(async (req, res) => {
@@ -315,6 +450,7 @@ const crearIndicacionMedica = catchAsync(async (req, res) => {
 module.exports = { 
   getHistorialNino,
   obtenerAlertasRepresentante,
+  obtenerNotificacionesRepresentante,
   obtenerEvolucionRepresentante,
   getHistorialCompleto,
   registrarFeedbackAlerta,

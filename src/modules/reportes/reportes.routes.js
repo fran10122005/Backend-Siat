@@ -8,6 +8,8 @@ const reportesController = require('./reportes.controller');
 router.get('/historial/:nin_codi', authenticate, validateSchema(schemas.historialSchema), reportesController.getHistorialNino);
 
 router.get('/alertas-representante', authenticate, reportesController.obtenerAlertasRepresentante);
+router.get('/notificaciones-representante', authenticate, reportesController.obtenerNotificacionesRepresentante);
+router.get('/parent-notifications', authenticate, reportesController.obtenerNotificacionesRepresentante);
 router.get('/evolucion-representante', authenticate, reportesController.obtenerEvolucionRepresentante);
 router.get('/historial-completo/:nin_codi', authenticate, reportesController.getHistorialCompleto);
 router.post('/alertas/:ale_codi/feedback', authenticate, reportesController.registrarFeedbackAlerta);

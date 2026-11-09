@@ -33,6 +33,9 @@ router.get('/:nin_codi/bitacora', authenticate, requireRole(['ROL_ESP', 'ROL_ADM
 // POST /api/ninos/bitacora (Registrar nueva bitácora de hogar)
 router.post('/bitacora', authenticate, requireRole(['ROL_REP']), ninosController.registrarBitacora);
 
+// PUT /api/ninos/bitacora/:bit_codi (Actualizar bitácora existente del hogar)
+router.put('/bitacora/:bit_codi', authenticate, requireRole(['ROL_REP']), ninosController.actualizarBitacora);
+
 // GET /api/ninos/:nin_codi/ficha (Obtener ficha clínica)
 router.get('/:nin_codi/ficha', authenticate, ninosController.obtenerFichaClinica);
 

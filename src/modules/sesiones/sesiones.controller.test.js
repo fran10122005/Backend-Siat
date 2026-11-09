@@ -55,12 +55,14 @@ describe('SesionesController', () => {
   });
 
   describe('listarActividades', () => {
-    test('retorna catálogo paginado de actividades terapéuticas', async () => {
+    test('retorna catálogo paginado de actividades terapéuticas pasando rol_codi', async () => {
       const mockResult = { items: [{ act_codi: 'ACT01', act_trea: 'Rompecabezas' }], total: 1 };
       sesionesService.listarActividades.mockResolvedValue(mockResult);
+      req.user = { rol_codi: 'ROL_REP' };
 
       await sesionesController.listarActividades(req, res);
 
+      expect(sesionesService.listarActividades).toHaveBeenCalledWith(expect.objectContaining({ rol_codi: 'ROL_REP' }));
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ data: mockResult });
     });

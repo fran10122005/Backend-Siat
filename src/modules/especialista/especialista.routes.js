@@ -3,6 +3,10 @@ const router = express.Router();
 const { authenticate } = require('../../middleware/auth.middleware');
 const especialistaController = require('./especialista.controller');
 
+// Notificaciones del módulo de especialista
+router.get('/notificaciones', authenticate, especialistaController.listarNotificaciones);
+router.get('/notifications', authenticate, especialistaController.listarNotificaciones);
+
 // Indicaciones médicas
 router.get('/indicaciones/:nin_codi', authenticate, especialistaController.listarIndicaciones);
 router.post('/indicaciones', authenticate, especialistaController.crearIndicacion);

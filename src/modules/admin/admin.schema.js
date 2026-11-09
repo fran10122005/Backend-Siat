@@ -47,6 +47,7 @@ const createEspecialistaSchema = z.object({
     password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional(),
     esp_codi: z.string().max(11).optional(),
     esp_tdoc: z.enum(['V', 'E', 'P']).optional(),
+    esp_cedu: z.string().min(5, 'La cédula / documento debe tener al menos 5 caracteres').max(20),
     esp_fnac: z.string().refine(fechaNoFutura, 'La fecha de nacimiento no puede ser futura').optional(),
     esp_foto: z.string().url('URL de foto inválida').optional(),
     esp_licencia: z.string().max(50).optional(),
@@ -55,12 +56,12 @@ const createEspecialistaSchema = z.object({
     esp_gner: z.enum(['M', 'F']).optional(),
     ins_codi: z.string().max(11, 'Código de institución inválido').optional(), // Será forzado si es ROL_ADM
   })
-    .refine((data) => documentoValido(data.esp_codi, data.esp_tdoc), {
-      message: data => data.esp_tdoc === 'P'
+    .refine((data) => documentoValido(data.esp_cedu, data.esp_tdoc), (data) => ({
+      message: data.esp_tdoc === 'P'
         ? 'El pasaporte debe tener el formato: 1-3 letras seguidas de 4-8 dígitos (Ej. P123456)'
         : 'La cédula debe contener entre 6 y 8 dígitos (Ej. 12345678)',
-      path: ['esp_codi']
-    })
+      path: ['esp_cedu']
+    }))
     .refine((data) => telefonoValido(data.esp_telf), {
       message: 'El teléfono debe tener formato venezolano (Ej. +584121234567)',
       path: ['esp_telf']
@@ -79,6 +80,7 @@ const updateEspecialistaSchema = z.object({
     esp_nomb: z.string().min(2).optional(),
     esp_apel: z.string().min(2).optional(),
     esp_tdoc: z.enum(['V', 'E', 'P']).optional(),
+    esp_cedu: z.string().max(20).optional().nullable(),
     esp_fnac: z.string().refine(fechaNoFutura, 'La fecha de nacimiento no puede ser futura').optional(),
     esp_foto: z.string().url('URL de foto inválida').optional().nullable(),
     esp_licencia: z.string().max(50).optional(),
@@ -87,10 +89,12 @@ const updateEspecialistaSchema = z.object({
     esc_codi: z.string().max(10).optional(),
     usu_crro: z.string().email().optional()
   })
-    .refine((data) => documentoValido(data.esp_codi, data.esp_tdoc), {
-      message: 'El documento ingresado no coincide con el tipo de documento seleccionado',
-      path: ['esp_codi']
-    })
+    .refine((data) => documentoValido(data.esp_cedu, data.esp_tdoc), (data) => ({
+      message: data.esp_tdoc === 'P'
+        ? 'El pasaporte debe tener el formato: 1-3 letras seguidas de 4-8 dígitos (Ej. P123456)'
+        : 'La cédula debe contener entre 6 y 8 dígitos (Ej. 12345678)',
+      path: ['esp_cedu']
+    }))
     .refine((data) => telefonoValido(data.esp_telf), {
       message: 'El teléfono debe tener formato venezolano (Ej. +584121234567)',
       path: ['esp_telf']

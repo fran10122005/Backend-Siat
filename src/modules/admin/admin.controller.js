@@ -216,6 +216,11 @@ const ejecutarReporteProgramado = catchAsync(async (req, res) => {
   res.json({ success: true, data: result });
 });
 
+const getNotificaciones = catchAsync(async (req, res) => {
+  const data = await adminService.getNotificacionesAdmin(req.user.usu_codi);
+  res.status(200).json({ status: 'ok', data });
+});
+
 module.exports = {
   getHealth,
   listNinos,
@@ -243,5 +248,6 @@ module.exports = {
   getReporteSchedule,
   saveReporteSchedule,
   enviarReporteAhora,
-  ejecutarReporteProgramado
+  ejecutarReporteProgramado,
+  getNotificaciones
 };

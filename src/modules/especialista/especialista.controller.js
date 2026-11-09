@@ -51,6 +51,36 @@ const crearIndicacion = catchAsync(async (req, res) => {
     include: { tm_espec: { select: { esp_nomb: true, esp_apel: true, esp_espe: true } } }
   });
 
+  // Notificar en tiempo real al representante (best-effort sin romper flujo)
+  try {
+    if (prisma.tm_repre_ninos?.findMany) {
+      const { emitToUser } = require('../../services/socket.service');
+      const vinculos = await prisma.tm_repre_ninos.findMany({
+        where: { nin_codi },
+        include: {
+          tm_repre: { select: { usu_codi: true } },
+          tm_ninos: { select: { nin_nomb: true } }
+        }
+      });
+      vinculos.forEach((v) => {
+        const repUsu = v.tm_repre?.usu_codi;
+        if (repUsu) {
+          const ninNomb = v.tm_ninos?.nin_nomb || 'tu representado';
+          emitToUser(repUsu, 'parent_notification', {
+            id: `ind_${indicacion.ind_codi}`,
+            ind_codi: indicacion.ind_codi,
+            type: 'indication',
+            nin_codi,
+            nin_nomb: ninNomb,
+            message: `📋 Nueva indicación (${indicacion.ind_area || 'Clínica'}) para ${ninNomb}: ${indicacion.ind_desc}`,
+            time: indicacion.ind_crea || new Date().toISOString(),
+            read: false
+          });
+        }
+      });
+    }
+  } catch (_) {}
+
   res.status(201).json({ status: 'success', data: indicacion });
 });
 
@@ -183,6 +213,130 @@ const listarAlertasNino = catchAsync(async (req, res) => {
   res.status(200).json({ status: 'ok', data: pagedAlertas, pagination: formatMeta(total) });
 });
 
+// ─── NOTIFICACIONES DEL MÓDULO ESPECIALISTA ────────────────────────────────────
+
+const listarNotificaciones = catchAsync(async (req, res) => {
+  if (req.user?.rol_codi && req.user.rol_codi !== 'ROL_ESP') {
+    return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Especialista.' });
+  }
+
+  const espec = await prisma.tm_espec.findUnique({
+    where: { usu_codi: req.user.usu_codi },
+    include: {
+      tc_asign: {
+        where: { asi_stdo: 'Activo' },
+        select: { nin_codi: true }
+      }
+    }
+  });
+
+  if (!espec) {
+    return res.status(404).json({ error: 'Especialista no encontrado' });
+  }
+
+  const assignedIds = (espec.tc_asign || []).map((a) => a.nin_codi);
+  if (assignedIds.length === 0) {
+    return res.status(200).json({ status: 'ok', data: [] });
+  }
+
+  const hace7Dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const hace72Horas = new Date(Date.now() - 72 * 60 * 60 * 1000);
+
+  const [alertas, bitacorasCriticas, asignacionesRecientes] = await Promise.all([
+    prisma.tr_alert.findMany({
+      where: {
+        ale_time: { gte: hace7Dias },
+        tr_sesio: { nin_codi: { in: assignedIds } }
+      },
+      include: {
+        tr_sesio: {
+          select: {
+            nin_codi: true,
+            tm_ninos: { select: { nin_codi: true, nin_nomb: true, nin_apel: true } }
+          }
+        }
+      },
+      orderBy: { ale_time: 'desc' },
+      take: 15
+    }),
+    prisma.tr_bitac.findMany({
+      where: {
+        nin_codi: { in: assignedIds },
+        bit_crea: { gte: hace72Horas },
+        OR: [
+          { bit_crisi: { gt: 0 } },
+          { bit_anim: { contains: 'Crisis', mode: 'insensitive' } }
+        ]
+      },
+      include: {
+        tm_ninos: { select: { nin_codi: true, nin_nomb: true, nin_apel: true } }
+      },
+      orderBy: { bit_crea: 'desc' },
+      take: 15
+    }),
+    prisma.tc_asign.findMany({
+      where: {
+        esp_codi: espec.esp_codi,
+        asi_stdo: 'Activo',
+        asi_inic: { gte: hace7Dias }
+      },
+      include: {
+        tm_ninos: { select: { nin_codi: true, nin_nomb: true, nin_apel: true } }
+      },
+      orderBy: { asi_inic: 'desc' },
+      take: 10
+    })
+  ]);
+
+  const items = [];
+
+  (alertas || []).forEach((al) => {
+    const ninCodi = al.tr_sesio?.nin_codi || al.tr_sesio?.tm_ninos?.nin_codi || null;
+    const ninNomb = al.tr_sesio?.tm_ninos?.nin_nomb || 'Paciente';
+    items.push({
+      id: al.ale_codi,
+      ale_codi: al.ale_codi,
+      type: 'crisis',
+      nin_codi: ninCodi,
+      nin_nomb: ninNomb,
+      message: `🚨 Alerta fisiológica (${al.ale_meto || 'SOBRECARGA'}) en ${ninNomb}`,
+      time: al.ale_time
+    });
+  });
+
+  (bitacorasCriticas || []).forEach((b) => {
+    const ninNomb = b.tm_ninos?.nin_nomb || 'Paciente';
+    items.push({
+      id: `home_${b.bit_codi}`,
+      bit_codi: b.bit_codi,
+      type: 'home_crisis',
+      nin_codi: b.nin_codi,
+      nin_nomb: ninNomb,
+      message: `🏡 Bitácora crítica en el hogar de ${ninNomb} (${b.bit_anim || 'Crisis'}${b.bit_crisi ? ` · ${b.bit_crisi} crisis` : ''})`,
+      time: b.bit_crea || b.bit_fech
+    });
+  });
+
+  (asignacionesRecientes || []).forEach((a) => {
+    const ninNomb = a.tm_ninos
+      ? `${a.tm_ninos.nin_nomb} ${a.tm_ninos.nin_apel || ''}`.trim()
+      : 'Paciente';
+    items.push({
+      id: `assign_${a.asi_codi}`,
+      asi_codi: a.asi_codi,
+      type: 'assignment',
+      nin_codi: a.nin_codi,
+      nin_nomb: a.tm_ninos?.nin_nomb || ninNomb,
+      message: `📋 Nuevo paciente asignado: ${ninNomb}`,
+      time: a.asi_inic
+    });
+  });
+
+  items.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+  res.status(200).json({ status: 'ok', data: items.slice(0, 25) });
+});
+
 
 module.exports = {
   listarIndicaciones,
@@ -190,5 +344,6 @@ module.exports = {
   marcarIndicacionLeida,
   listarIncidentes,
   crearIncidente,
-  listarAlertasNino
+  listarAlertasNino,
+  listarNotificaciones
 };

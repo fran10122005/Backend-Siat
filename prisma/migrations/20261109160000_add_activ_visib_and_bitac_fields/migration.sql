@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "tm_activ" ADD COLUMN IF NOT EXISTS "act_visib" VARCHAR(20) NOT NULL DEFAULT 'AMBOS';
+
+-- AlterTable
+ALTER TABLE "tr_bitac" ADD COLUMN IF NOT EXISTS "bit_logro" TEXT;
+ALTER TABLE "tr_bitac" ADD COLUMN IF NOT EXISTS "bit_terap" VARCHAR(120);
+

@@ -54,6 +54,13 @@ const registrarBitacora = catchAsync(async (req, res) => {
   res.status(201).json({ message: 'Bitácora registrada exitosamente', data: result });
 });
 
+const actualizarBitacora = catchAsync(async (req, res) => {
+  const { usu_codi } = req.user;
+  const { bit_codi } = req.params;
+  const result = await ninosService.actualizarBitacora(usu_codi, bit_codi, req.body);
+  res.status(200).json({ message: 'Bitácora actualizada exitosamente', data: result });
+});
+
 const obtenerFichaClinica = catchAsync(async (req, res) => {
   const { nin_codi } = req.params;
   const result = await ninosService.getFichaClinica(nin_codi);
@@ -76,6 +83,7 @@ module.exports = {
   obtenerBitacoras,
   obtenerBitacorasPorNino,
   registrarBitacora,
+  actualizarBitacora,
   obtenerFichaClinica,
   actualizarFichaClinica
 };

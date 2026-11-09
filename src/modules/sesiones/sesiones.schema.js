@@ -2,6 +2,7 @@ const { z } = require('zod');
 
 const ESTADO_ACTIVIDAD = ['Activa', 'Inactiva'];
 const DIFICULTAD_ACTIVIDAD = ['Baja', 'Media', 'Alta'];
+const VISIBILIDAD_ACTIVIDAD = ['ESPECIALISTA', 'AMBOS'];
 const ESTADO_ASIGNACION = ['Activa', 'Completada', 'Cancelada'];
 
 const codigo10 = z.string().min(1, 'Código requerido').max(10, 'Máximo 10 caracteres');
@@ -44,6 +45,7 @@ const listarActividadesSchema = z.object({
     cat_codi: codigo10.optional(),
     estado: z.enum(ESTADO_ACTIVIDAD).optional(),
     dificultad: z.enum(DIFICULTAD_ACTIVIDAD).optional(),
+    visibilidad: z.enum(VISIBILIDAD_ACTIVIDAD).optional(),
     busqueda: busquedaQuery,
     ...paginacion.shape,
   }),
@@ -63,6 +65,7 @@ const crearActividadSchema = z.object({
     act_med: z.string().trim().max(2000).optional(),
     act_difi: z.enum(DIFICULTAD_ACTIVIDAD).optional(),
     act_estd: z.enum(ESTADO_ACTIVIDAD).optional(),
+    act_visib: z.enum(VISIBILIDAD_ACTIVIDAD).optional(),
     act_time: z.coerce.number().int().min(1).max(600).optional(),
     nin_codi: codigo10.optional(),
   }),
@@ -79,6 +82,7 @@ const actualizarActividadSchema = z.object({
     act_med: z.string().trim().max(2000).nullable().optional(),
     act_difi: z.enum(DIFICULTAD_ACTIVIDAD).optional(),
     act_estd: z.enum(ESTADO_ACTIVIDAD).optional(),
+    act_visib: z.enum(VISIBILIDAD_ACTIVIDAD).optional(),
     act_time: z.coerce.number().int().min(1).max(600).nullable().optional(),
     nin_codi: codigo10.nullable().optional(),
   }).refine((b) => Object.keys(b).length > 0, {

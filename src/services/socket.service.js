@@ -38,42 +38,79 @@ function closePreviousSockets(io, usuCodi, keepId) {
 }
 
 const childRoom = (ninCodi) => `child:${ninCodi}`;
+const userRoom = (usuCodi) => `user:${usuCodi}`;
+const adminRoom = (insCodi) => `admin:${insCodi || 'global'}`;
 
 async function roomsForUser(usu_codi, rol_codi) {
   const rooms = [];
+  if (usu_codi) rooms.push(userRoom(usu_codi));
+
   if (rol_codi === 'ROL_REP') {
-    const repre = await prisma.tm_repre.findUnique({ where: { usu_codi } });
-    if (repre && repre.nin_codi) rooms.push(childRoom(repre.nin_codi));
+    const repre = await prisma.tm_repre.findUnique({
+      where: { usu_codi },
+      include: { tm_repre_ninos: true }
+    });
+    if (repre?.tm_repre_ninos?.length) {
+      repre.tm_repre_ninos.forEach((rn) => rooms.push(childRoom(rn.nin_codi)));
+    } else if (repre?.nin_codi) {
+      rooms.push(childRoom(repre.nin_codi));
+    }
   } else if (rol_codi === 'ROL_ESP') {
     const espec = await prisma.tm_espec.findUnique({
       where: { usu_codi },
-      include: { tc_asign: true }
+      include: {
+        tc_asign: {
+          where: { asi_stdo: 'Activo' }
+        }
+      }
     });
-    if (espec && espec.tc_asign) {
-      espec.tc_asign.forEach(asign => rooms.push(childRoom(asign.nin_codi)));
+    if (espec?.tc_asign?.length) {
+      espec.tc_asign.forEach((asign) => rooms.push(childRoom(asign.nin_codi)));
     }
   } else if (rol_codi === 'ROL_ADM') {
-    const ninos = await prisma.tm_ninos.findMany({ select: { nin_codi: true } });
-    ninos.forEach(n => rooms.push(childRoom(n.nin_codi)));
+    // El administrador NO se une a salas child:* para aislar crisis infantiles y evitar
+    // sobrecarga en tiempo real cuando existen miles de pacientes en la institución.
+    const admin = await prisma.tm_admin.findUnique({
+      where: { usu_codi },
+      select: { ins_codi: true }
+    });
+    rooms.push(adminRoom(admin?.ins_codi));
   }
-  return rooms;
+
+  return [...new Set(rooms)];
 }
 
 async function canAccessChild(usu_codi, rol_codi, nin_codi) {
+  if (!nin_codi) return false;
   if (rol_codi === 'ROL_ADM') {
-    const nino = await prisma.tm_ninos.findUnique({ where: { nin_codi } });
-    return Boolean(nino);
+    // El administrador no participa en telemetría clínica ni en salas individuales de niños
+    return false;
   }
   if (rol_codi === 'ROL_REP') {
-    const repre = await prisma.tm_repre.findUnique({ where: { usu_codi } });
-    return Boolean(repre && repre.nin_codi === nin_codi);
+    const repre = await prisma.tm_repre.findUnique({
+      where: { usu_codi },
+      include: { tm_repre_ninos: true }
+    });
+    if (!repre) return false;
+    if (Array.isArray(repre.tm_repre_ninos)) {
+      return repre.tm_repre_ninos.some((rn) => rn.nin_codi === nin_codi);
+    }
+    return repre.nin_codi === nin_codi;
   }
   if (rol_codi === 'ROL_ESP') {
     const espec = await prisma.tm_espec.findUnique({
       where: { usu_codi },
-      include: { tc_asign: true }
+      include: {
+        tc_asign: {
+          where: { asi_stdo: 'Activo' }
+        }
+      }
     });
-    return Boolean(espec && espec.tc_asign.some(a => a.nin_codi === nin_codi));
+    return Boolean(
+      espec?.tc_asign?.some(
+        (a) => a.nin_codi === nin_codi && (!a.asi_stdo || a.asi_stdo === 'Activo')
+      )
+    );
   }
   return false;
 }
@@ -270,18 +307,29 @@ function initSocketServer(server, app) {
             if (!recentAlert) {
               const instr = await prisma.tm_instr.findFirst();
               const ins_codi = instr?.ins_codi || 'I001';
-              const alerta = await prisma.tr_alert.create({
-                data: {
-                  ale_codi: generateId('AL'),
-                  ses_codi: activeSesion.ses_codi,
-                  ins_codi,
-                  ale_time: new Date(),
-                  ale_meto: aleMeto
-                }
-              });
+              const [alerta, ninoInfo] = await Promise.all([
+                prisma.tr_alert.create({
+                  data: {
+                    ale_codi: generateId('AL'),
+                    ses_codi: activeSesion.ses_codi,
+                    ins_codi,
+                    ale_time: new Date(),
+                    ale_meto: aleMeto
+                  }
+                }),
+                prisma.tm_ninos.findUnique({
+                  where: { nin_codi: targetChild },
+                  select: { nin_nomb: true }
+                })
+              ]);
 
+              const ninNomb = ninoInfo?.nin_nomb || null;
               io.to(room).emit('new_alert', {
                 id_alert: alerta.ale_codi,
+                nin_codi: targetChild,
+                nin_nomb: ninNomb,
+                nino: ninNomb,
+                niño: ninNomb,
                 fec_hora: alerta.ale_time,
                 metodo: alerta.ale_meto,
                 est_dete: alerta.ale_meto,
@@ -311,7 +359,36 @@ function getIO() {
   return ioInstance;
 }
 
+function emitToUser(usuCodi, event, payload) {
+  if (!ioInstance || !usuCodi || !event) return false;
+  ioInstance.to(userRoom(usuCodi)).emit(event, payload);
+  return true;
+}
+
+function emitToAdminInstitution(insCodi, event, payload) {
+  if (!ioInstance || !event) return false;
+  ioInstance.to(adminRoom(insCodi)).emit(event, payload);
+  return true;
+}
+
+async function resyncUserSockets(usuCodi) {
+  if (!ioInstance || !usuCodi) return;
+  const current = socketsByUser.get(usuCodi);
+  if (!current || current.size === 0) return;
+  for (const socketId of current) {
+    const sock = ioInstance.sockets.sockets.get(socketId);
+    if (sock) {
+      await syncRooms(sock);
+    }
+  }
+}
+
 module.exports = {
   initSocketServer,
-  getIO
+  getIO,
+  emitToUser,
+  emitToAdminInstitution,
+  resyncUserSockets,
+  roomsForUser,
+  canAccessChild
 };

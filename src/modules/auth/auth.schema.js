@@ -33,6 +33,7 @@ const registerEspSchema = z.object({
     esp_nomb: z.string().max(50),
     esp_apel: z.string().max(50),
     esp_tdoc: z.enum(['V', 'E', 'P']).optional(),
+    esp_cedu: z.string().max(20).optional(),
     esp_fnac: z.string().refine((v) => !v || !isNaN(new Date(v).getTime()), 'Fecha de nacimiento inválida').optional(),
     esp_licencia: z.string().max(50).optional(),
     esp_telf: z.string().max(15).optional(),
