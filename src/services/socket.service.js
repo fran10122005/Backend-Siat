@@ -254,9 +254,9 @@ function initSocketServer(server, app) {
         const activeSesion = payload.ses_codi
           ? await prisma.tr_sesio.findUnique({ where: { ses_codi: payload.ses_codi } })
           : await prisma.tr_sesio.findFirst({
-              where: { nin_codi: targetChild, ses_cerr: null },
-              orderBy: { ses_inic: 'desc' }
-            });
+            where: { nin_codi: targetChild, ses_cerr: null },
+            orderBy: { ses_inic: 'desc' }
+          });
 
         if (activeSesion && !activeSesion.ses_cerr) {
           const nowTs = Date.now();

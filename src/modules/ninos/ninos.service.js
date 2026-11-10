@@ -126,6 +126,7 @@ class NinosService {
       rep_apel: repre.rep_apel,
       rep_rela: repre.rep_rela,
       rep_telf: repre.rep_telf,
+      ...(repre.rep_fnac !== undefined ? { rep_fnac: repre.rep_fnac } : {}),
       rep_cedu: repre.rep_cedu,
       usu_crro: repre.tm_usuar.usu_crro,
       ninos: repre._count.tm_repre_ninos
@@ -243,8 +244,14 @@ class NinosService {
             rep_apel: data.rep_apel,
             rep_rela: data.rep_rela,
             rep_telf: data.rep_telf,
+            ...(data.rep_fnac ? { rep_fnac: new Date(data.rep_fnac) } : {}),
             ...(data.rep_foto ? { rep_foto: data.rep_foto } : {})
           }
+        });
+      } else if (!repre.rep_fnac && data.rep_fnac) {
+        repre = await tx.tm_repre.update({
+          where: { rep_cod: repre.rep_cod },
+          data: { rep_fnac: new Date(data.rep_fnac) }
         });
       }
 

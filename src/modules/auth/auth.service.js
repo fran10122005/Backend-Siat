@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const prisma = require('../../config/db');
 const env = require('../../config/env');
 const { generateId } = require('../../utils/idGenerator');
+const AppError = require('../../utils/AppError');
 
 class AuthService {
   async login(correo, clave) {
@@ -72,7 +73,7 @@ class AuthService {
     });
 
     if (existingUser) {
-      throw new Error('El correo ya está registrado');
+      throw new AppError('El correo ya está registrado', 409, 'usu_crro');
     }
 
     const hashedClve = await bcrypt.hash(data.usu_clve, 10);
@@ -127,7 +128,8 @@ class AuthService {
           rep_nomb: data.rep_nomb,
           rep_apel: data.rep_apel,
           rep_rela: data.rep_rela || 'Familiar',
-          rep_telf: data.rep_telf || 'No especificado'
+          rep_telf: data.rep_telf || 'No especificado',
+          ...(data.rep_fnac ? { rep_fnac: new Date(data.rep_fnac) } : {})
         }
       });
 
@@ -151,16 +153,26 @@ class AuthService {
     });
 
     if (existingUser) {
-      throw new Error('El usuario o correo ya están registrados');
+      throw new AppError('El usuario o correo ya están registrados', 409, 'usu_crro');
     }
 
-    const normalizedCedu = data.esp_cedu ? String(data.esp_cedu).trim() : null;
+    const normalizedCedu = data.esp_cedu ? String(data.esp_cedu).trim().toUpperCase() : null;
     if (normalizedCedu && typeof prisma.tm_espec?.findFirst === 'function') {
       const existingEsp = await prisma.tm_espec.findFirst({
         where: { esp_cedu: normalizedCedu }
       });
       if (existingEsp) {
-        throw Object.assign(new Error('Ya existe un especialista registrado con ese número de cédula o documento'), { status: 400 });
+        throw new AppError('Ya existe un especialista registrado con ese número de cédula o documento', 409, 'esp_cedu');
+      }
+    }
+
+    const normalizedLic = data.esp_licencia ? String(data.esp_licencia).trim().toUpperCase() : null;
+    if (normalizedLic && typeof prisma.tm_espec?.findFirst === 'function') {
+      const existingLic = await prisma.tm_espec.findFirst({
+        where: { esp_licencia: { equals: normalizedLic, mode: 'insensitive' } }
+      });
+      if (existingLic) {
+        throw new AppError('Ya existe un especialista registrado con esa licencia profesional', 409, 'esp_licencia');
       }
     }
 
@@ -216,7 +228,7 @@ class AuthService {
           esp_cedu: normalizedCedu,
           esp_fnac: data.esp_fnac ? new Date(data.esp_fnac) : null,
           esp_foto: data.esp_foto || null,
-          esp_licencia: data.esp_licencia || null,
+          esp_licencia: normalizedLic || null,
           esp_telf: data.esp_telf || null
         }
       });
@@ -437,11 +449,11 @@ class AuthService {
     // Si intentan cambiar la contraseña, validar la actual
     if (password && password.trim() !== '') {
       if (!currentPassword) {
-        throw Object.assign(new Error('La contraseña actual es requerida para cambiar la contraseña'), { status: 400 });
+        throw new AppError('La contraseña actual es requerida para cambiar la contraseña', 400, 'currentPassword');
       }
       const isCurrentPasswordValid = await bcrypt.compare(currentPassword, usuario.usu_clve);
       if (!isCurrentPasswordValid) {
-        throw Object.assign(new Error('La contraseña actual es incorrecta'), { status: 400 });
+        throw new AppError('La contraseña actual es incorrecta', 400, 'currentPassword');
       }
     }
 
@@ -462,13 +474,13 @@ class AuthService {
           data: {
             esp_nomb: profileData.nomb || usuario.tm_espec.esp_nomb,
             esp_apel: profileData.apel || usuario.tm_espec.esp_apel,
-            esp_telf: profileData.telf !== undefined ? profileData.telf : usuario.tm_espec.esp_telf,
-            esp_licencia: profileData.licencia !== undefined ? profileData.licencia : usuario.tm_espec.esp_licencia,
+            esp_telf: profileData.telf !== undefined ? (profileData.telf || null) : usuario.tm_espec.esp_telf,
+            esp_licencia: profileData.licencia !== undefined ? (profileData.licencia || null) : usuario.tm_espec.esp_licencia,
             // Documento legal (esp_codi / esp_cedu / esp_tdoc) inmutable desde perfil propio, igual que ROL_REP
             esp_fnac: profileData.fnac !== undefined
               ? (profileData.fnac ? new Date(profileData.fnac) : null)
               : usuario.tm_espec.esp_fnac,
-            esp_foto: profileData.foto !== undefined ? profileData.foto : usuario.tm_espec.esp_foto
+            esp_foto: profileData.foto !== undefined ? (profileData.foto || null) : usuario.tm_espec.esp_foto
           }
         });
       } else if (usuario.rol_codi === 'ROL_REP' && usuario.tm_repre) {
@@ -477,9 +489,12 @@ class AuthService {
           data: {
             rep_nomb: profileData.nomb || usuario.tm_repre.rep_nomb,
             rep_apel: profileData.apel || usuario.tm_repre.rep_apel,
-            rep_telf: profileData.telf !== undefined ? profileData.telf : usuario.tm_repre.rep_telf,
-            rep_rela: profileData.rela !== undefined ? profileData.rela : usuario.tm_repre.rep_rela,
-            rep_foto: profileData.foto !== undefined ? profileData.foto : usuario.tm_repre.rep_foto
+            rep_telf: profileData.telf !== undefined ? (profileData.telf || usuario.tm_repre.rep_telf) : usuario.tm_repre.rep_telf,
+            rep_rela: profileData.rela !== undefined ? (profileData.rela || usuario.tm_repre.rep_rela) : usuario.tm_repre.rep_rela,
+            rep_fnac: profileData.fnac !== undefined
+              ? (profileData.fnac ? new Date(profileData.fnac) : null)
+              : usuario.tm_repre.rep_fnac,
+            rep_foto: profileData.foto !== undefined ? (profileData.foto || null) : usuario.tm_repre.rep_foto
           }
         });
       } else if (usuario.rol_codi === 'ROL_ADM' && usuario.tm_admin) {
@@ -492,7 +507,7 @@ class AuthService {
             });
 
             if (existente && existente.usu_codi !== usu_codi) {
-              throw Object.assign(new Error('El correo electrónico ya está en uso por otra cuenta'), { status: 400 });
+              throw new AppError('El correo electrónico ya está en uso por otra cuenta', 409, 'email');
             }
 
             await tx.tm_usuar.update({
@@ -507,7 +522,10 @@ class AuthService {
           data: {
             adm_nomb: profileData.nomb || usuario.tm_admin.adm_nomb,
             adm_apel: profileData.apel || usuario.tm_admin.adm_apel,
-            adm_foto: profileData.foto !== undefined ? profileData.foto : usuario.tm_admin.adm_foto
+            ...(profileData.tdoc !== undefined ? { adm_tdoc: profileData.tdoc } : {}),
+            ...(profileData.cedu !== undefined ? { adm_cedu: profileData.cedu ? String(profileData.cedu).trim().toUpperCase() : null } : {}),
+            ...(profileData.telf !== undefined ? { adm_telf: profileData.telf ? String(profileData.telf).trim() : null } : {}),
+            adm_foto: profileData.foto !== undefined ? (profileData.foto || null) : usuario.tm_admin.adm_foto
           }
         });
       }

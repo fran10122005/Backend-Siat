@@ -28,12 +28,12 @@ router.get('/asignaciones', adminController.listAsignaciones);
 router.get('/users', adminController.listUsers);
 router.get('/usuarios', adminController.listUsers);
 router.get('/auditoria', adminController.getAuditoria);
-router.patch('/users/:usu_codi/estado', adminController.toggleUser);
+router.patch('/users/:usu_codi/estado', validateSchema(adminSchemas.toggleUserSchema), adminController.toggleUser);
 router.post('/users/:usu_codi/password', adminController.resetUserPassword);
 router.put('/representantes/:usu_codi', validateSchema(adminSchemas.updateRepresentanteSchema), adminController.updateRepresentante);
 router.patch('/ninos/:nin_codi/foto', validateSchema(adminSchemas.updateNinoFotoSchema), adminController.updateNinoFoto);
-router.patch('/ninos/:nin_codi', adminController.updateNino);
-router.post('/ninos/:nin_codi/documentos', adminController.addNinoDocumento);
+router.patch('/ninos/:nin_codi', validateSchema(adminSchemas.updateNinoSchema), adminController.updateNino);
+router.post('/ninos/:nin_codi/documentos', validateSchema(adminSchemas.addNinoDocumentoSchema), adminController.addNinoDocumento);
 
 router.post('/especialistas', validateSchema(adminSchemas.createEspecialistaSchema), adminController.createEspecialista);
 router.put('/especialistas/:esp_codi', validateSchema(adminSchemas.updateEspecialistaSchema), adminController.updateEspecialista);
@@ -47,10 +47,9 @@ router.post('/especialidades', validateSchema(adminSchemas.createEspecialidadSch
 router.put('/especialidades/:esc_codi', validateSchema(adminSchemas.updateEspecialidadSchema), adminController.updateEspecialidad);
 router.patch('/especialidades/:esc_codi/estado', validateSchema(adminSchemas.toggleEspecialidadSchema), adminController.toggleEspecialidad);
 
-
 router.get('/reportes/programados', adminController.getReporteSchedule);
-router.post('/reportes/programados', adminController.saveReporteSchedule);
-router.post('/reportes/enviar-ahora', adminController.enviarReporteAhora);
+router.post('/reportes/programados', validateSchema(adminSchemas.saveReporteSchema), adminController.saveReporteSchedule);
+router.post('/reportes/enviar-ahora', validateSchema(adminSchemas.enviarReporteAhoraSchema), adminController.enviarReporteAhora);
 router.post('/reportes/ejecutar-programado', adminController.ejecutarReporteProgramado);
 
 module.exports = router;

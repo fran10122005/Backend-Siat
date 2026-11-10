@@ -68,7 +68,10 @@ const createEspecialista = catchAsync(async (req, res) => {
   if (!admin) throw new AppError('No se encontró la institución del administrador', 404);
   data.ins_codi = admin.ins_codi;
   const result = await adminService.createEspecialista(data);
-  await adminService.logAudit(req.user.usu_codi, 'SUCCESS', `Creación de especialista: ${data.nombre} ${data.apellido}`, req.ip);
+  const logName = result?.esp
+    ? `${result.esp.esp_nomb} ${result.esp.esp_apel}`
+    : `${data.nombre || ''} ${data.apellido || ''}`.trim();
+  await adminService.logAudit(req.user.usu_codi, 'SUCCESS', `Creación de especialista: ${logName}`, req.ip);
   res.status(201).json({ message: 'Especialista creado', data: result });
 });
 

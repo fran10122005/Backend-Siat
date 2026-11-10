@@ -1,5 +1,3 @@
-const { ZodError } = require('zod');
-
 const validateSchema = (schema) => (req, res, next) => {
   try {
     const result = schema.parse({
@@ -7,8 +5,12 @@ const validateSchema = (schema) => (req, res, next) => {
       query: req.query,
       params: req.params,
     });
-    // Exponer los datos validados/saneados (Zod elimina claves desconocidas)
+    // Exponer los datos validados/saneados (Zod .trim() / eliminación de claves desconocidas)
+    // tanto en req.validated* como en req.body para compatibilidad con todos los controladores.
     req.validatedBody = result.body;
+    if (result.body !== undefined) {
+      req.body = result.body;
+    }
     req.validatedQuery = result.query;
     req.validatedParams = result.params;
     next();

@@ -121,6 +121,7 @@ class AdminService {
     return await prisma.tm_ninos.findMany({
       where,
       include: {
+        tc_sensi_rel: true,
         tm_repre_ninos: { include: { tm_repre: true } },
         tc_asign: { include: { tm_espec: true } }
       },
@@ -342,7 +343,10 @@ class AdminService {
     if (!esp) throw new AppError('Especialista no encontrado', 404);
 
     const normalizedCedu = data.esp_cedu !== undefined
-      ? (data.esp_cedu ? String(data.esp_cedu).trim() : null)
+      ? (data.esp_cedu ? String(data.esp_cedu).trim().toUpperCase() : null)
+      : undefined;
+    const normalizedLic = data.esp_licencia !== undefined
+      ? (data.esp_licencia ? String(data.esp_licencia).trim().toUpperCase() : null)
       : undefined;
 
     const result = await prisma.$transaction(async (tx) => {
@@ -353,7 +357,17 @@ class AdminService {
             esp_codi: { not: esp_codi }
           }
         });
-        if (ceduExists) throw new AppError('La cédula / documento ingresado ya está en uso', 400);
+        if (ceduExists) throw new AppError('La cédula / documento ingresado ya está en uso', 409, 'esp_cedu');
+      }
+
+      if (normalizedLic) {
+        const licExists = await tx.tm_espec.findFirst({
+          where: {
+            esp_licencia: { equals: normalizedLic, mode: 'insensitive' },
+            esp_codi: { not: esp_codi }
+          }
+        });
+        if (licExists) throw new AppError('La licencia profesional ingresada ya está en uso', 409, 'esp_licencia');
       }
 
       const updatedEsp = await tx.tm_espec.update({
@@ -366,9 +380,9 @@ class AdminService {
           esp_fnac: data.esp_fnac !== undefined
             ? (data.esp_fnac ? new Date(data.esp_fnac) : null)
             : undefined,
-          esp_foto: data.esp_foto !== undefined ? data.esp_foto : undefined,
-          esp_licencia: data.esp_licencia !== undefined ? data.esp_licencia : undefined,
-          esp_telf: data.esp_telf !== undefined ? data.esp_telf : undefined,
+          esp_foto: data.esp_foto !== undefined ? (data.esp_foto || null) : undefined,
+          esp_licencia: normalizedLic !== undefined ? normalizedLic : undefined,
+          esp_telf: data.esp_telf !== undefined ? (data.esp_telf || null) : undefined,
           esp_gner: data.esp_gner !== undefined ? data.esp_gner : undefined,
           esc_codi: data.esc_codi !== undefined ? data.esc_codi : undefined,
         }
@@ -382,7 +396,7 @@ class AdminService {
             usu_codi: { not: esp.usu_codi }
           }
         });
-        if (emailExists) throw new AppError('El correo ingresado ya está en uso', 400);
+        if (emailExists) throw new AppError('El correo ingresado ya está en uso', 409, 'usu_crro');
 
         updatedUser = await tx.tm_usuar.update({
           where: { usu_codi: esp.usu_codi },
@@ -494,32 +508,39 @@ class AdminService {
 
     if (newCodi) {
       const clash = await prisma.tm_insti.findUnique({ where: { ins_codi: newCodi } });
-      if (clash) throw new AppError('Ya existe una institución con ese RIF', 409);
+      if (clash) throw new AppError('Ya existe una institución con ese RIF', 409, 'ins_codi');
     }
 
     return prisma.tm_insti.update({
       where: { ins_codi: targetId },
       data: {
         ...(newCodi ? { ins_codi: newCodi } : {}),
-        ins_nomb: data.ins_nomb,
-        ins_dire: data.ins_dire,
-        ins_telf: data.ins_telf,
-        ins_pers: data.ins_pers,
-        ins_emai: data.ins_emai,
-        ins_web: data.ins_web
+        ...(data.ins_nomb !== undefined ? { ins_nomb: data.ins_nomb } : {}),
+        ...(data.ins_dire !== undefined ? { ins_dire: data.ins_dire } : {}),
+        ...(data.ins_telf !== undefined ? { ins_telf: data.ins_telf } : {}),
+        ...(data.ins_pers !== undefined ? { ins_pers: data.ins_pers || null } : {}),
+        ...(data.ins_emai !== undefined ? { ins_emai: data.ins_emai || null } : {}),
+        ...(data.ins_web !== undefined ? { ins_web: data.ins_web || null } : {}),
+        ...(data.ins_logo !== undefined ? { ins_logo: data.ins_logo || null } : {}),
+        ...(data.ins_conf !== undefined ? { ins_conf: data.ins_conf } : {}),
       }
     });
   }
 
   async createEspecialidad(data) {
     const existing = await prisma.tm_especi.findUnique({ where: { esc_codi: data.esc_codi } });
-    if (existing) throw new AppError('Ya existe una especialidad con este ID', 400);
+    if (existing) throw new AppError('Ya existe una especialidad con este código', 409, 'esc_codi');
+
+    const nameExists = await prisma.tm_especi.findFirst({
+      where: { esc_nomb: { equals: data.esc_nomb, mode: 'insensitive' } }
+    });
+    if (nameExists) throw new AppError('Ya existe una especialidad con ese nombre', 409, 'esc_nomb');
 
     return prisma.tm_especi.create({
       data: {
         esc_codi: data.esc_codi,
         esc_nomb: data.esc_nomb,
-        esc_desc: data.esc_desc,
+        esc_desc: data.esc_desc || null,
         esc_estd: true
       }
     });
@@ -529,11 +550,21 @@ class AdminService {
     const existing = await prisma.tm_especi.findUnique({ where: { esc_codi: id } });
     if (!existing) throw new AppError('Especialidad no encontrada', 404);
 
+    if (data.esc_nomb) {
+      const nameExists = await prisma.tm_especi.findFirst({
+        where: {
+          esc_nomb: { equals: data.esc_nomb, mode: 'insensitive' },
+          esc_codi: { not: id }
+        }
+      });
+      if (nameExists) throw new AppError('Ya existe otra especialidad con ese nombre', 409, 'esc_nomb');
+    }
+
     return prisma.tm_especi.update({
       where: { esc_codi: id },
       data: {
-        esc_nomb: data.esc_nomb,
-        esc_desc: data.esc_desc
+        ...(data.esc_nomb !== undefined ? { esc_nomb: data.esc_nomb } : {}),
+        ...(data.esc_desc !== undefined ? { esc_desc: data.esc_desc || null } : {})
       }
     });
   }
@@ -700,6 +731,7 @@ class AdminService {
               rep_apel: true,
               rep_rela: true,
               rep_telf: true,
+              rep_fnac: true,
               rep_foto: true,
               rep_cedu: true,
               tm_repre_ninos: {
@@ -716,6 +748,14 @@ class AdminService {
                       nin_foto: true,
                       nin_diag: true,
                       nin_docs: true,
+                      tc_sensi_rel: {
+                        select: {
+                          sen_codi: true,
+                          sen_tipo: true,
+                          sen_nvli: true,
+                          sen_nota: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -776,14 +816,14 @@ class AdminService {
       const ceduExists = await prisma.tm_repre.findFirst({
         where: { rep_cedu: data.rep_cedu, usu_codi: { not: usuCodi } }
       });
-      if (ceduExists) throw new AppError('La cédula ingresada ya está registrada', 400);
+      if (ceduExists) throw new AppError('La cédula ingresada ya está registrada', 409, 'rep_cedu');
     }
 
     if (data.usu_crro) {
       const emailExists = await prisma.tm_usuar.findFirst({
         where: { usu_crro: data.usu_crro, usu_codi: { not: usuCodi } }
       });
-      if (emailExists) throw new AppError('El correo electrónico ya está en uso', 400);
+      if (emailExists) throw new AppError('El correo electrónico ya está en uso', 409, 'usu_crro');
     }
 
     await prisma.$transaction(async (tx) => {
@@ -794,7 +834,10 @@ class AdminService {
           rep_apel: data.rep_apel !== undefined ? data.rep_apel : undefined,
           rep_telf: data.rep_telf !== undefined ? data.rep_telf : undefined,
           rep_rela: data.rep_rela !== undefined ? data.rep_rela : undefined,
-          rep_foto: data.rep_foto !== undefined ? data.rep_foto : undefined,
+          rep_fnac: data.rep_fnac !== undefined
+            ? (data.rep_fnac ? new Date(data.rep_fnac) : null)
+            : undefined,
+          rep_foto: data.rep_foto !== undefined ? (data.rep_foto || null) : undefined,
           rep_cedu: data.rep_cedu !== undefined ? data.rep_cedu : undefined
         }
       });
@@ -827,18 +870,48 @@ class AdminService {
     const nino = await prisma.tm_ninos.findUnique({ where: { nin_codi: ninCodi } });
     if (!nino) throw new AppError('Paciente no encontrado', 404);
 
-    return prisma.tm_ninos.update({
-      where: { nin_codi: ninCodi },
-      data: {
-        ...(data.nin_nomb ? { nin_nomb: data.nin_nomb } : {}),
-        ...(data.nin_apel ? { nin_apel: data.nin_apel } : {}),
-        ...(data.nin_fnac ? { nin_fnac: new Date(data.nin_fnac) } : {}),
-        ...(data.nin_gner ? { nin_gner: data.nin_gner } : {}),
-        ...(data.nin_nivd ? { nin_nivd: data.nin_nivd } : {}),
-        ...(data.nin_diag !== undefined ? { nin_diag: data.nin_diag || null } : {}),
-        ...(data.nin_docs !== undefined ? { nin_docs: data.nin_docs } : {}),
-        ...(data.nin_foto !== undefined ? { nin_foto: data.nin_foto || null } : {})
+    return prisma.$transaction(async (tx) => {
+      let senCodi = nino.sen_codi;
+
+      if (data.sen_tipo !== undefined || data.sen_nvli !== undefined || data.sen_nota !== undefined) {
+        if (senCodi) {
+          await tx.tc_sensi.update({
+            where: { sen_codi: senCodi },
+            data: {
+              ...(data.sen_tipo ? { sen_tipo: data.sen_tipo } : {}),
+              ...(data.sen_nvli ? { sen_nvli: data.sen_nvli } : {}),
+              ...(data.sen_nota !== undefined ? { sen_nota: data.sen_nota || null } : {}),
+            }
+          });
+        } else if (data.sen_tipo) {
+          senCodi = generateId('SN');
+          await tx.tc_sensi.create({
+            data: {
+              sen_codi: senCodi,
+              nin_codi: ninCodi,
+              sen_tipo: data.sen_tipo,
+              sen_nvli: data.sen_nvli || 'Moderado',
+              sen_nota: data.sen_nota || null,
+            }
+          });
+        }
       }
+
+      return tx.tm_ninos.update({
+        where: { nin_codi: ninCodi },
+        data: {
+          ...(data.nin_nomb ? { nin_nomb: data.nin_nomb } : {}),
+          ...(data.nin_apel ? { nin_apel: data.nin_apel } : {}),
+          ...(data.nin_fnac ? { nin_fnac: new Date(data.nin_fnac) } : {}),
+          ...(data.nin_gner ? { nin_gner: data.nin_gner } : {}),
+          ...(data.nin_nivd ? { nin_nivd: data.nin_nivd } : {}),
+          ...(data.nin_diag !== undefined ? { nin_diag: data.nin_diag || null } : {}),
+          ...(data.nin_docs !== undefined ? { nin_docs: data.nin_docs } : {}),
+          ...(data.nin_foto !== undefined ? { nin_foto: data.nin_foto || null } : {}),
+          ...(senCodi && senCodi !== nino.sen_codi ? { sen_codi: senCodi } : {}),
+        },
+        include: { tc_sensi_rel: true }
+      });
     });
   }
 

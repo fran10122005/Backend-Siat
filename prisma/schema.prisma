@@ -48,13 +48,15 @@ model tm_usuar {
 }
 
 model tm_insti {
-  ins_codi String     @id @db.VarChar(11)
+  ins_codi String     @id @db.VarChar(15)
   ins_nomb String     @db.VarChar(100)
   ins_dire String     @db.Text
   ins_telf String     @db.VarChar(15)
   ins_pers String?    @db.VarChar(50)
   ins_emai String?    @db.VarChar(120)
   ins_web  String?    @db.VarChar(200)
+  ins_logo String?    @db.Text
+  ins_conf Json?
   ins_estd Boolean    @default(true)
   tm_espec tm_espec[]
   tm_ninos tm_ninos[]
@@ -73,7 +75,7 @@ model tm_especi {
 model tm_espec {
   esp_codi     String      @id @db.VarChar(11)
   usu_codi     String      @unique @db.VarChar(10)
-  ins_codi     String      @db.VarChar(11)
+  ins_codi     String      @db.VarChar(15)
   esp_nomb     String      @db.VarChar(50)
   esp_apel     String      @db.VarChar(50)
   esc_codi     String      @db.VarChar(10)
@@ -98,7 +100,7 @@ model tm_espec {
 
 model tm_ninos {
   nin_codi String      @id @db.VarChar(10)
-  ins_codi String      @db.VarChar(11)
+  ins_codi String      @db.VarChar(15)
   nin_nomb String      @db.VarChar(50)
   nin_apel String      @db.VarChar(50)
   nin_fnac DateTime    @db.Date
@@ -134,14 +136,15 @@ model tm_ninos {
 }
 
 model tm_repre {
-  rep_cod  String  @id @db.VarChar(10)
-  usu_codi String  @unique @db.VarChar(10)
-  rep_cedu String? @unique @db.VarChar(11)
-  rep_nomb String  @db.VarChar(50)
-  rep_apel String  @db.VarChar(50)
-  rep_rela String  @db.VarChar(20)
-  rep_telf String  @db.VarChar(15)
-  rep_foto String? @db.Text
+  rep_cod  String    @id @db.VarChar(10)
+  usu_codi String    @unique @db.VarChar(10)
+  rep_cedu String?   @unique @db.VarChar(11)
+  rep_nomb String    @db.VarChar(50)
+  rep_apel String    @db.VarChar(50)
+  rep_rela String    @db.VarChar(20)
+  rep_telf String    @db.VarChar(15)
+  rep_fnac DateTime? @db.Date
+  rep_foto String?   @db.Text
 
   tm_usuar       tm_usuar         @relation(fields: [usu_codi], references: [usu_codi])
   tm_repre_ninos tm_repre_ninos[]
@@ -183,7 +186,7 @@ model th_perfi {
 
 model tm_dispo {
   dis_codi String @id @db.VarChar(10)
-  ins_codi String @db.VarChar(11)
+  ins_codi String @db.VarChar(15)
   nin_codi String @db.VarChar(10)
   dis_sral String @unique @db.VarChar(50)
   dis_vers String @db.VarChar(20)
@@ -493,9 +496,12 @@ model tr_repor {
 model tm_admin {
   adm_codi String  @id @db.VarChar(11)
   usu_codi String  @unique @db.VarChar(10)
-  ins_codi String  @db.VarChar(11)
+  ins_codi String  @db.VarChar(15)
   adm_nomb String  @db.VarChar(50)
   adm_apel String  @db.VarChar(50)
+  adm_tdoc String  @default("V") @db.VarChar(2)
+  adm_cedu String? @db.VarChar(20)
+  adm_telf String? @db.VarChar(15)
   adm_foto String? @db.Text
 
   tm_usuar tm_usuar @relation(fields: [usu_codi], references: [usu_codi])
