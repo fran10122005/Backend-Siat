@@ -1,5 +1,6 @@
 const sesionesController = require('./sesiones.controller');
 const sesionesService = require('./sesiones.service');
+const { crearActividadSchema, actualizarActividadSchema } = require('./sesiones.schema');
 
 jest.mock('./sesiones.service');
 
@@ -97,6 +98,46 @@ describe('SesionesController', () => {
         message: 'Actividad eliminada',
         data: { softDelete: false }
       });
+    });
+  });
+
+  describe('Schemas de Actividades', () => {
+    test('crearActividadSchema acepta nin_codi: null y campos opcionales nulos para catálogo general', () => {
+      const parsed = crearActividadSchema.parse({
+        body: {
+          cat_codi: 'CAT01',
+          act_trea: 'Juego Sensorial Global',
+          act_desc: null,
+          act_meta: null,
+          act_med: null,
+          nin_codi: null,
+          act_time: 15,
+        },
+        query: {},
+        params: {},
+      });
+
+      expect(parsed.body.nin_codi).toBeNull();
+      expect(parsed.body.act_desc).toBeNull();
+      expect(parsed.body.act_med).toBeNull();
+    });
+
+    test('actualizarActividadSchema acepta campos limpiados en null y cambio de act_estd', () => {
+      const parsed = actualizarActividadSchema.parse({
+        params: { act_codi: 'ACT01' },
+        body: {
+          act_desc: null,
+          act_meta: null,
+          act_med: null,
+          nin_codi: null,
+          act_estd: 'Activa',
+        },
+        query: {},
+      });
+
+      expect(parsed.body.act_med).toBeNull();
+      expect(parsed.body.nin_codi).toBeNull();
+      expect(parsed.body.act_estd).toBe('Activa');
     });
   });
 });

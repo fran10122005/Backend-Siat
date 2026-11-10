@@ -59,15 +59,15 @@ const crearActividadSchema = z.object({
   body: z.object({
     cat_codi: codigo10,
     act_trea: z.string().trim().min(3, 'El título debe tener al menos 3 caracteres').max(60),
-    act_desc: z.string().trim().max(2000).optional(),
-    act_meta: z.string().trim().max(2000).optional(),
-    act_guia: z.string().trim().max(2000).optional(),
-    act_med: z.string().trim().max(2000).optional(),
+    act_desc: z.string().trim().max(2000).nullable().optional(),
+    act_meta: z.string().trim().max(2000).nullable().optional(),
+    act_guia: z.string().trim().max(2000).nullable().optional(),
+    act_med: z.string().trim().max(2000).nullable().optional(),
     act_difi: z.enum(DIFICULTAD_ACTIVIDAD).optional(),
     act_estd: z.enum(ESTADO_ACTIVIDAD).optional(),
     act_visib: z.enum(VISIBILIDAD_ACTIVIDAD).optional(),
     act_time: z.coerce.number().int().min(1).max(600).optional(),
-    nin_codi: codigo10.optional(),
+    nin_codi: codigo10.nullable().optional(),
   }),
 });
 
